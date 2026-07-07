@@ -10,11 +10,14 @@
     "pacing": 100.0,
     "visual_cadence": 100.0,
     "hook_strength": 100.0,
-    "text_load": 100.0
+    "text_load": 100.0,
+    "semantic_motion": 35.0,
+    "human_storytelling": 30.0
   },
-  "overall": 97.0,
-  "verdict": "postable draft",
+  "overall": 80.9,
+  "verdict": "mechanical prototype - not channel-ready",
   "notes": [
-    "Backend output passes the basic postability checks."
+    "semantic_motion needs attention",
+    "human_storytelling needs attention"
   ]
 }

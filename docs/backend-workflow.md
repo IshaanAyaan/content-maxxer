@@ -1,6 +1,8 @@
 # Backend Workflow
 
-This repo now has a small backend path for caption-led explainer videos. It does not solve voice, avatars, or slides. It takes a paper idea or concept, creates a five-beat plan, renders a captioned MP4, writes an SRT file, creates a contact sheet, and evaluates the output.
+This repo has a small backend path for caption-led explainer videos. It does not solve voice, avatars, or slides. It takes a paper idea or concept, creates a five-beat plan, renders a captioned MP4, writes an SRT file, creates a contact sheet, and evaluates the output.
+
+Important: this is now considered a mechanical prototype, not the creative target. It proves the backend can produce files, but the videos do not yet meet the human explainer quality bar.
 
 Install it with:
 
@@ -59,8 +61,10 @@ The evaluator scores the output with proxy checks:
 - hook strength;
 - text load.
 
-These checks do not predict real platform performance. They are a backend guardrail that catches obvious problems before posting.
+These checks do not predict real platform performance. They are a backend guardrail that catches obvious problems. The current template renderer is explicitly marked as not channel-ready because it lacks semantic motion and human storytelling.
 
 ## Current limitation
 
 The tested backend is caption-led and visual-first. Manim remains available as a separate render command, but it was not part of the verified path because local Manim system dependencies are not installed in this environment.
+
+The next serious implementation should use `docs/director-system.md` as the target instead of extending this template renderer.

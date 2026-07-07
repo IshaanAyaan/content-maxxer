@@ -41,5 +41,6 @@
   "width": 540,
   "height": 960,
   "fps": 18,
-  "quality": "draft"
+  "quality": "draft",
+  "renderer": "caption_template_v0"
 }

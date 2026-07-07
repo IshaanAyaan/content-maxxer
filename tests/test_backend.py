@@ -5,6 +5,7 @@ from content_maxxer.backend import (
     generate_beats,
     score_format,
     score_pacing,
+    score_semantic_motion,
     score_subtitles,
     slugify,
 )
@@ -31,6 +32,7 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(score_format(540, 960, "vertical"), 100.0)
         self.assertGreaterEqual(score_subtitles(beats), 80.0)
         self.assertEqual(score_pacing(beats), 100.0)
+        self.assertEqual(score_semantic_motion(beats, "caption_template_v0"), 35.0)
 
 
 if __name__ == "__main__":

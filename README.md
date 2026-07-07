@@ -18,6 +18,8 @@ The goal is to make "contentmaxxing" systematic: one source in, one polished vid
 
 For the current research pass on AI-native shorts workflows, see [docs/ai-shorts-research.md](docs/ai-shorts-research.md).
 
+For the new quality reset after studying human-made visual explainers, see [docs/human-explainer-study.md](docs/human-explainer-study.md) and [docs/director-system.md](docs/director-system.md).
+
 ## Quick start
 
 Install the backend video dependencies first:
@@ -91,6 +93,8 @@ docs/
   workflow.md                Concise upgrade plan for the contentmaxx workflow.
   ai-shorts-research.md      Research memo on tools, methods, and channel workflow.
   backend-workflow.md        Small backend path for idea-to-captioned-video.
+  human-explainer-study.md   What good human visual explainers do differently.
+  director-system.md         Target AI director loop for Manim-style explainers.
   test-report.md             Results from generated backend test videos.
 src/content_maxxer/
   cli.py                     Commands for creating and rendering jobs.

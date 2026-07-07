@@ -296,6 +296,7 @@ def render_video(job_dir: Path, plan: VideoPlan, *, quality: str, fps: int = 24)
                 "height": height,
                 "fps": fps,
                 "quality": quality,
+                "renderer": "caption_template_v0",
             },
             indent=2,
         )
@@ -373,19 +374,10 @@ def draw_frame(
         max_width=width - margin * 2,
         line_spacing=6,
     )
-    draw_text_box(
-        draw,
-        beat.title,
-        (margin, safe_top + int(height * 0.04)),
-        fonts["title"],
-        TEXT,
-        max_width=width - margin * 2,
-        line_spacing=8,
-    )
 
     visual_box = (
         margin,
-        int(height * 0.22),
+        int(height * 0.15),
         width - margin,
         int(height * 0.68),
     )
@@ -501,7 +493,7 @@ def draw_takeaway(draw: Any, box: tuple[int, int, int, int], progress: float, fo
     ]
     visible = max(2, int(len(check) * max(progress, 0.45)))
     draw.line(check[:visible], fill=GREEN, width=10, joint="curve")
-    draw_centered_text(draw, "postable", (cx, cy + size + 48), fonts["label"], TEXT)
+    draw_centered_text(draw, "prototype", (cx, cy + size + 48), fonts["label"], MUTED)
 
 
 def draw_caption(draw: Any, width: int, height: int, text: str, font: Any, safe_bottom: int) -> None:
@@ -662,6 +654,8 @@ def evaluate_export(video_path: Path, manifest_path: Path | None = None) -> dict
         "visual_cadence": score_visual_cadence(beats, duration),
         "hook_strength": score_hook(beats[0].caption if beats else ""),
         "text_load": score_text_load(beats),
+        "semantic_motion": score_semantic_motion(beats, manifest.get("renderer", "")),
+        "human_storytelling": score_human_storytelling(manifest.get("renderer", "")),
     }
     overall = round(sum(scores.values()) / max(1, len(scores)), 1)
     result = {
@@ -672,7 +666,7 @@ def evaluate_export(video_path: Path, manifest_path: Path | None = None) -> dict
         "beats": len(beats),
         "scores": scores,
         "overall": overall,
-        "verdict": verdict(overall),
+        "verdict": verdict(overall, manifest.get("renderer", "")),
         "notes": evaluation_notes(scores),
     }
     return result
@@ -769,7 +763,24 @@ def score_text_load(beats: list[Beat]) -> float:
     return 58.0
 
 
-def verdict(overall: float) -> str:
+def score_semantic_motion(beats: list[Beat], renderer: str) -> float:
+    if renderer == "caption_template_v0":
+        return 35.0
+    generic_visuals = {"hook", "flow", "curve", "compare", "takeaway"}
+    if any(beat.visual in generic_visuals for beat in beats):
+        return 55.0
+    return 100.0
+
+
+def score_human_storytelling(renderer: str) -> float:
+    if renderer == "caption_template_v0":
+        return 30.0
+    return 100.0
+
+
+def verdict(overall: float, renderer: str = "") -> str:
+    if renderer == "caption_template_v0":
+        return "mechanical prototype - not channel-ready"
     if overall >= 85:
         return "postable draft"
     if overall >= 72:
