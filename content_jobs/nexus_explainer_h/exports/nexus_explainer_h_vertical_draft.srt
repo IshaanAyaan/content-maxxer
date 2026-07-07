@@ -1,0 +1,19 @@
+1
+00:00:00,000 --> 00:00:05,000
+Two models can earn the same pretraining score and still end up in very different places.
+
+2
+00:00:05,000 --> 00:00:10,000
+Think of training as moving through a landscape.
+
+3
+00:00:10,000 --> 00:00:15,000
+Nexus cares about whether task valleys agree.
+
+4
+00:00:15,000 --> 00:00:20,000
+Instead of guessing that agreement directly, Nexus uses a temporary inner model: clone, step on batches,.
+
+5
+00:00:20,000 --> 00:00:25,000
+Pretraining loss is a scorecard.

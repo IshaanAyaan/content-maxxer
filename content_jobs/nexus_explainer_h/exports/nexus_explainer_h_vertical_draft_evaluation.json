@@ -1,0 +1,20 @@
+{
+  "video": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/nexus_explainer_h/exports/nexus_explainer_h_vertical_draft.mp4",
+  "width": 540,
+  "height": 960,
+  "duration": 25.0,
+  "beats": 5,
+  "scores": {
+    "format_match": 100.0,
+    "subtitle_readability": 100.0,
+    "pacing": 100.0,
+    "visual_cadence": 100.0,
+    "hook_strength": 100.0,
+    "text_load": 100.0
+  },
+  "overall": 100.0,
+  "verdict": "postable draft",
+  "notes": [
+    "Backend output passes the basic postability checks."
+  ]
+}

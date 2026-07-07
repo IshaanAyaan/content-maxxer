@@ -1,0 +1,45 @@
+{
+  "title": "Nexus Explainer H",
+  "slug": "nexus_explainer_h",
+  "source": "https://arxiv.org/pdf/2604.09258",
+  "format": "vertical",
+  "duration": 25.0,
+  "beats": [
+    {
+      "title": "Hook",
+      "caption": "Two models can earn the same pretraining score and still end up in very different places.",
+      "visual": "hook",
+      "duration": 5.0
+    },
+    {
+      "title": "Setup",
+      "caption": "Think of training as moving through a landscape.",
+      "visual": "flow",
+      "duration": 5.0
+    },
+    {
+      "title": "Mechanism",
+      "caption": "Nexus cares about whether task valleys agree.",
+      "visual": "curve",
+      "duration": 5.0
+    },
+    {
+      "title": "Engineering detail",
+      "caption": "Instead of guessing that agreement directly, Nexus uses a temporary inner model: clone, step on batches,.",
+      "visual": "compare",
+      "duration": 5.0
+    },
+    {
+      "title": "Takeaway",
+      "caption": "Pretraining loss is a scorecard.",
+      "visual": "takeaway",
+      "duration": 5.0
+    }
+  ],
+  "output": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/nexus_explainer_h/exports/nexus_explainer_h_vertical_draft.mp4",
+  "srt": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/nexus_explainer_h/exports/nexus_explainer_h_vertical_draft.srt",
+  "width": 540,
+  "height": 960,
+  "fps": 18,
+  "quality": "draft"
+}

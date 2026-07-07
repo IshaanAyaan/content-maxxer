@@ -1,0 +1,20 @@
+{
+  "video": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/gradient_descent_simple/exports/gradient_descent_simple_vertical_draft.mp4",
+  "width": 540,
+  "height": 960,
+  "duration": 22.0,
+  "beats": 5,
+  "scores": {
+    "format_match": 100.0,
+    "subtitle_readability": 82.0,
+    "pacing": 100.0,
+    "visual_cadence": 100.0,
+    "hook_strength": 100.0,
+    "text_load": 100.0
+  },
+  "overall": 97.0,
+  "verdict": "postable draft",
+  "notes": [
+    "Backend output passes the basic postability checks."
+  ]
+}

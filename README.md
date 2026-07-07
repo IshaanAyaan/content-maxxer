@@ -20,19 +20,20 @@ For the current research pass on AI-native shorts workflows, see [docs/ai-shorts
 
 ## Quick start
 
-Install system video/render dependencies first:
-
-```bash
-brew install ffmpeg cairo pango pkg-config
-```
-
-Then set up the repo:
+Install the backend video dependencies first:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 content-maxxer doctor
+```
+
+Manim rendering is still available as an optional path. For Manim scenes, install the system render dependencies and optional extra:
+
+```bash
+brew install ffmpeg cairo pango pkg-config
+pip install -e ".[manim]"
 ```
 
 Create a new content job:
@@ -54,6 +55,29 @@ Render the seed Nexus job:
 content-maxxer render nexus_explainer_h --quality draft
 ```
 
+Generate a caption-led video directly from an idea:
+
+```bash
+content-maxxer make-video \
+  --title "Gradient Descent" \
+  --idea "Gradient descent improves a model by taking small downhill steps." \
+  --format vertical \
+  --duration 22 \
+  --quality draft
+```
+
+Package an existing job into a captioned MP4:
+
+```bash
+content-maxxer package nexus_explainer_h --format vertical --duration 25 --quality draft
+```
+
+Evaluate a generated export:
+
+```bash
+content-maxxer evaluate nexus_explainer_h --format vertical --quality draft
+```
+
 ## Repo layout
 
 ```text
@@ -66,8 +90,11 @@ content_jobs/
 docs/
   workflow.md                Concise upgrade plan for the contentmaxx workflow.
   ai-shorts-research.md      Research memo on tools, methods, and channel workflow.
+  backend-workflow.md        Small backend path for idea-to-captioned-video.
+  test-report.md             Results from generated backend test videos.
 src/content_maxxer/
   cli.py                     Commands for creating and rendering jobs.
+  backend.py                 Caption-led video renderer and evaluator.
 ```
 
 ## Next lanes

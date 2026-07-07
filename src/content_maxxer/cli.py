@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+from content_maxxer.backend import (
+    evaluate_export,
+    load_plan_from_job,
+    make_plan,
+    render_video,
+    slugify,
+    write_evaluation_report,
+    write_plan_files,
+)
 
 
 PLACEHOLDERS = {
@@ -99,21 +110,93 @@ def command_render(args: argparse.Namespace) -> int:
     return subprocess.run(command, cwd=repo_root, check=False).returncode
 
 
+def command_make_video(args: argparse.Namespace) -> int:
+    repo_root = find_repo_root()
+    slug = args.slug or slugify(args.title)
+    job_dir = repo_root / "content_jobs" / slug
+    if job_dir.exists() and not args.force:
+        print(f"Job already exists: {job_dir}", file=sys.stderr)
+        print("Use --force to overwrite generated planning files.", file=sys.stderr)
+        return 1
+    plan = make_plan(
+        slug=slug,
+        title=args.title,
+        idea=args.idea,
+        source=args.source_url or args.pdf or "Concept prompt",
+        video_format=args.format,
+        duration=args.duration,
+    )
+    write_plan_files(job_dir, plan, args.idea)
+    output = render_video(job_dir, plan, quality=args.quality, fps=args.fps)
+    print(f"Generated video: {output}")
+    return 0
+
+
+def command_package(args: argparse.Namespace) -> int:
+    repo_root = find_repo_root()
+    job_dir = repo_root / "content_jobs" / args.slug
+    if not job_dir.exists():
+        print(f"Job not found: {job_dir}", file=sys.stderr)
+        return 1
+    plan = load_plan_from_job(job_dir, video_format=args.format, duration=args.duration)
+    output = render_video(job_dir, plan, quality=args.quality, fps=args.fps)
+    print(f"Packaged video: {output}")
+    return 0
+
+
+def command_evaluate(args: argparse.Namespace) -> int:
+    repo_root = find_repo_root()
+    if args.video:
+        video_path = Path(args.video)
+    else:
+        job_dir = repo_root / "content_jobs" / args.slug
+        video_path = job_dir / "exports" / f"{args.slug}_{args.format}_{args.quality}.mp4"
+    if not video_path.exists():
+        print(f"Video not found: {video_path}", file=sys.stderr)
+        return 1
+    result = evaluate_export(video_path)
+    report_path = video_path.with_name(video_path.stem + "_evaluation.md")
+    json_path = video_path.with_name(video_path.stem + "_evaluation.json")
+    write_evaluation_report(result, report_path)
+    json_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    print(f"Evaluation: {result['overall']}/100 ({result['verdict']})")
+    print(f"Report: {report_path}")
+    return 0
+
+
 def command_doctor(_: argparse.Namespace) -> int:
     checks = {
         "python": sys.executable,
         "manim": shutil.which("manim"),
         "ffmpeg": shutil.which("ffmpeg"),
     }
+    optional_modules = ["PIL", "imageio", "imageio_ffmpeg", "numpy"]
     for name, path in checks.items():
         status = path or "missing"
         print(f"{name}: {status}")
+    for module in optional_modules:
+        try:
+            __import__(module)
+            status = "installed"
+        except ImportError:
+            status = "missing"
+        print(f"{module}: {status}")
 
     if not checks["manim"] or not checks["ffmpeg"]:
         print()
-        print("Install render dependencies on macOS with:")
+        print("Manim rendering needs:")
         print("  brew install ffmpeg cairo pango pkg-config")
-        print("  pip install -e .")
+        print("  pip install -e \".[manim]\"")
+    missing_backend = []
+    for module in optional_modules:
+        try:
+            __import__(module)
+        except ImportError:
+            missing_backend.append(module)
+    if missing_backend:
+        print()
+        print("Caption-led backend needs:")
+        print("  pip install pillow imageio imageio-ffmpeg numpy")
         return 1
     return 0
 
@@ -145,6 +228,34 @@ def build_parser() -> argparse.ArgumentParser:
     )
     render_parser.add_argument("--open", action="store_true", help="Open the rendered video after rendering.")
     render_parser.set_defaults(func=command_render)
+
+    make_parser = subparsers.add_parser("make-video", help="Create a job and render a caption-led MP4.")
+    make_parser.add_argument("--title", required=True, help="Human-readable video title.")
+    make_parser.add_argument("--idea", required=True, help="Paper, idea, or concept description.")
+    make_parser.add_argument("--slug", default="", help="Optional job id. Defaults to a slug from the title.")
+    make_parser.add_argument("--source-url", default="", help="Optional source URL.")
+    make_parser.add_argument("--pdf", default="", help="Optional local PDF path for tracking.")
+    make_parser.add_argument("--format", choices=["vertical", "horizontal", "square"], default="vertical")
+    make_parser.add_argument("--duration", type=float, default=25.0, help="Target duration in seconds.")
+    make_parser.add_argument("--quality", choices=["draft", "production"], default="draft")
+    make_parser.add_argument("--fps", type=int, default=24)
+    make_parser.add_argument("--force", action="store_true", help="Overwrite generated planning files.")
+    make_parser.set_defaults(func=command_make_video)
+
+    package_parser = subparsers.add_parser("package", help="Render a caption-led MP4 from an existing job.")
+    package_parser.add_argument("slug", help="Job id under content_jobs/.")
+    package_parser.add_argument("--format", choices=["vertical", "horizontal", "square"], default="vertical")
+    package_parser.add_argument("--duration", type=float, default=None, help="Optional target duration in seconds.")
+    package_parser.add_argument("--quality", choices=["draft", "production"], default="draft")
+    package_parser.add_argument("--fps", type=int, default=24)
+    package_parser.set_defaults(func=command_package)
+
+    evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate a generated video export.")
+    evaluate_parser.add_argument("slug", nargs="?", default="", help="Job id under content_jobs/.")
+    evaluate_parser.add_argument("--video", default="", help="Optional explicit MP4 path.")
+    evaluate_parser.add_argument("--format", choices=["vertical", "horizontal", "square"], default="vertical")
+    evaluate_parser.add_argument("--quality", choices=["draft", "production"], default="draft")
+    evaluate_parser.set_defaults(func=command_evaluate)
 
     doctor_parser = subparsers.add_parser("doctor", help="Check local render dependencies.")
     doctor_parser.set_defaults(func=command_doctor)

@@ -1,0 +1,39 @@
+{
+  "title": "Gradient Descent",
+  "slug": "gradient_descent_simple",
+  "source": "Concept prompt",
+  "format": "vertical",
+  "duration": 22.0,
+  "beats": [
+    {
+      "title": "Hook",
+      "caption": "Why does Gradient Descent matter?",
+      "visual": "hook",
+      "duration": 4.4
+    },
+    {
+      "title": "Setup",
+      "caption": "Start with the core idea: Gradient descent is how a model improves by measuring which direction.",
+      "visual": "flow",
+      "duration": 4.4
+    },
+    {
+      "title": "Mechanism",
+      "caption": "One step changes the next step.",
+      "visual": "curve",
+      "duration": 4.4
+    },
+    {
+      "title": "Why it matters",
+      "caption": "Small shifts can create very different outcomes.",
+      "visual": "compare",
+      "duration": 4.4
+    },
+    {
+      "title": "Takeaway",
+      "caption": "Remember: Gradient Descent is about the path.",
+      "visual": "takeaway",
+      "duration": 4.4
+    }
+  ]
+}
