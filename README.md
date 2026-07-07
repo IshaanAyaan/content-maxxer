@@ -16,6 +16,8 @@ The current method is not just "make an animation." It is a repeatable content j
 
 The goal is to make "contentmaxxing" systematic: one source in, one polished video out, with the prompt, source notes, storyboard, scene code, render artifacts, and final output all saved together.
 
+For the current research pass on AI-native shorts workflows, see [docs/ai-shorts-research.md](docs/ai-shorts-research.md).
+
 ## Quick start
 
 Install system video/render dependencies first:
@@ -63,6 +65,7 @@ content_jobs/
     reference/               Existing MP4 and generated contact sheet.
 docs/
   workflow.md                Concise upgrade plan for the contentmaxx workflow.
+  ai-shorts-research.md      Research memo on tools, methods, and channel workflow.
 src/content_maxxer/
   cli.py                     Commands for creating and rendering jobs.
 ```
