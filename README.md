@@ -1,0 +1,72 @@
+# Content Maxxer
+
+Content Maxxer is a public repo for turning high-context prompts into shortform explainer videos, starting with Manim-based research animations.
+
+The first seed example is `nexus_explainer_h`: a 56 second 1920x1080 Manim-style visual explainer. It has no audio track yet, which makes it a clean reference for the visual workflow before adding narration, captions, shorts crops, and slide content later.
+
+## What this method is
+
+The current method is not just "make an animation." It is a repeatable content job:
+
+1. Start with a dense source, usually a paper, doc, or technical topic.
+2. Write one strong prompt that defines the audience, quality bar, duration, animation style, concepts to explain, and requirement to render/check scene modules.
+3. Break the idea into teachable visual beats: hook, mental model, core mechanism, engineering detail, takeaway.
+4. Build each beat as a Manim scene or scene section.
+5. Render, review for awkward frames or overlaps, then stitch into the final shortform asset.
+
+The goal is to make "contentmaxxing" systematic: one source in, one polished video out, with the prompt, source notes, storyboard, scene code, render artifacts, and final output all saved together.
+
+## Quick start
+
+Install system video/render dependencies first:
+
+```bash
+brew install ffmpeg cairo pango pkg-config
+```
+
+Then set up the repo:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+content-maxxer doctor
+```
+
+Create a new content job:
+
+```bash
+content-maxxer new my_explainer --title "My Explainer" --source-url "https://example.com/source.pdf"
+```
+
+Render a job:
+
+```bash
+content-maxxer render my_explainer --quality draft
+content-maxxer render my_explainer --quality high
+```
+
+Render the seed Nexus job:
+
+```bash
+content-maxxer render nexus_explainer_h --quality draft
+```
+
+## Repo layout
+
+```text
+content_jobs/
+  _template/                 Reusable content job starter files.
+  nexus_explainer_h/         Seed example based on the existing Nexus render.
+    prompt.md                The high-context prompt pattern.
+    scene.py                 Manim scene scaffold matching the reference style.
+    reference/               Existing MP4 and generated contact sheet.
+docs/
+  workflow.md                Concise upgrade plan for the contentmaxx workflow.
+src/content_maxxer/
+  cli.py                     Commands for creating and rendering jobs.
+```
+
+## Next lanes
+
+Video comes first. Slides should become a parallel content lane later, using the same intake, research, outline, and review structure, but with slide deck templates instead of Manim scenes.
