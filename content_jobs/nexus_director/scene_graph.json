@@ -3,7 +3,7 @@
   "slug": "nexus_director",
   "source": "https://arxiv.org/pdf/2604.09258",
   "format": "vertical",
-  "duration": 35.0,
+  "duration": 20.0,
   "visual_thesis": "Nexus treats pretraining as a path through a landscape, not just a final loss number.",
   "central_object": "Two optimization paths moving across the same loss landscape.",
   "primary_transformation": "Equal final score becomes visibly different landing geometry, then task agreement reshapes the route.",
@@ -19,7 +19,7 @@
         "different basin"
       ],
       "caption": "Two models can tie on loss and land in different basins.",
-      "duration": 7.0,
+      "duration": 4.0,
       "visual_kind": "nexus"
     },
     {
@@ -33,7 +33,7 @@
         "closer"
       ],
       "caption": "Downstream tasks care which valley you are near.",
-      "duration": 7.0,
+      "duration": 4.0,
       "visual_kind": "nexus"
     },
     {
@@ -47,7 +47,7 @@
         "agreement"
       ],
       "caption": "Nexus asks whether task directions agree.",
-      "duration": 7.0,
+      "duration": 4.0,
       "visual_kind": "nexus"
     },
     {
@@ -62,7 +62,7 @@
         "g_hat"
       ],
       "caption": "Clone, step on batches, then measure the displacement.",
-      "duration": 7.0,
+      "duration": 4.0,
       "visual_kind": "nexus"
     },
     {
@@ -76,8 +76,9 @@
         "not just score"
       ],
       "caption": "Nexus changes the route, not just the score.",
-      "duration": 7.0,
+      "duration": 4.0,
       "visual_kind": "nexus"
     }
-  ]
+  ],
+  "speed": 1.75
 }

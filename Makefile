@@ -1,4 +1,4 @@
-.PHONY: setup doctor new render-nexus render package-nexus demo-video director-gradient director-nexus evaluate-nexus evaluate-demo evaluate-director-gradient evaluate-director-nexus test
+.PHONY: setup doctor new render-nexus render package-nexus demo-video director-gradient director-nexus director-llm evaluate-nexus evaluate-demo evaluate-director-gradient evaluate-director-nexus evaluate-director-llm test
 
 setup:
 	python3 -m venv .venv
@@ -23,10 +23,13 @@ demo-video:
 	. .venv/bin/activate && content-maxxer make-video --slug gradient_descent_simple --title "Gradient Descent" --idea "Gradient descent improves a model by taking small downhill steps." --format vertical --duration 22 --quality draft --force
 
 director-gradient:
-	. .venv/bin/activate && content-maxxer director --slug gradient_descent_director --title "Gradient Descent" --idea "Gradient descent is how a model improves by reading the slope of the loss curve, taking a controlled downhill step, and repeating until it settles near a minimum." --format vertical --duration 32 --quality production --force
+	. .venv/bin/activate && content-maxxer director --slug gradient_descent_director --title "Gradient Descent" --idea "Gradient descent is how a model improves by reading the slope of the loss curve, taking a controlled downhill step, and repeating until it settles near a minimum." --format vertical --duration 32 --speed 1.75 --quality production --force
 
 director-nexus:
-	. .venv/bin/activate && content-maxxer director --slug nexus_director --title "Nexus" --idea "Nexus shows why two models can have the same pretraining loss but land in different optimization basins, and why downstream tasks care about the route through the landscape rather than only the score." --source-url "https://arxiv.org/pdf/2604.09258" --format vertical --duration 35 --quality production --force
+	. .venv/bin/activate && content-maxxer director --slug nexus_director --title "Nexus" --idea "Nexus shows why two models can have the same pretraining loss but land in different optimization basins, and why downstream tasks care about the route through the landscape rather than only the score." --source-url "https://arxiv.org/pdf/2604.09258" --format vertical --duration 35 --speed 1.75 --quality production --force
+
+director-llm:
+	. .venv/bin/activate && content-maxxer director --slug large_language_models_director --title "How Large Language Models Work" --idea "Explain how large language models work: text becomes tokens, tokens become vectors, attention mixes context, transformer layers refine meaning, the model predicts the next token, and repeating that loop creates an answer." --format vertical --duration 48 --speed 1.75 --quality production --force
 
 evaluate-nexus:
 	. .venv/bin/activate && content-maxxer evaluate nexus_explainer_h --format vertical --quality draft
@@ -39,6 +42,9 @@ evaluate-director-gradient:
 
 evaluate-director-nexus:
 	. .venv/bin/activate && content-maxxer evaluate nexus_director --format vertical --quality production --director
+
+evaluate-director-llm:
+	. .venv/bin/activate && content-maxxer evaluate large_language_models_director --format vertical --quality production --director
 
 test:
 	. .venv/bin/activate && python -m unittest discover -s tests

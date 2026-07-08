@@ -79,11 +79,19 @@ content-maxxer director \
   --idea "Gradient descent is how a model improves by reading the slope of the loss curve, taking a controlled downhill step, and repeating until it settles near a minimum." \
   --format vertical \
   --duration 32 \
+  --speed 1.75 \
   --quality production \
   --force
 ```
 
-The director path writes a visual thesis, scene graph, storyboard, subtitles, MP4, render manifest, and contact sheet. It is the current serious backend path because scenes are driven by a central visual object and semantic motion instead of generic beat templates.
+The director path writes a visual thesis, scene graph, storyboard, subtitles, MP4, render manifest, and contact sheet. It is the current serious backend path because scenes are driven by a central visual object and semantic motion instead of generic beat templates. `--speed 1.75` keeps the pacing closer to shortform human explainers.
+
+Generate the current LLM explainer sample:
+
+```bash
+make director-llm
+make evaluate-director-llm
+```
 
 Package an existing job into a captioned MP4:
 
@@ -96,6 +104,7 @@ Evaluate a generated export:
 ```bash
 content-maxxer evaluate nexus_explainer_h --format vertical --quality draft
 content-maxxer evaluate gradient_descent_director --format vertical --quality production --director
+content-maxxer evaluate large_language_models_director --format vertical --quality production --director
 ```
 
 ## Repo layout

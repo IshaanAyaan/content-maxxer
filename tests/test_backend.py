@@ -9,7 +9,7 @@ from content_maxxer.backend import (
     score_subtitles,
     slugify,
 )
-from content_maxxer.director import build_director_plan
+from content_maxxer.director import build_director_plan, retime_plan
 
 
 class BackendTests(unittest.TestCase):
@@ -44,6 +44,18 @@ class BackendTests(unittest.TestCase):
         self.assertIn("dot", plan.central_object.lower())
         self.assertTrue(all(scene.motion for scene in plan.scenes))
         self.assertTrue(all("Hook" not in scene.visible_text for scene in plan.scenes))
+
+    def test_director_retimes_for_faster_shortform_pacing(self):
+        plan = build_director_plan(
+            title="Large Language Models",
+            idea="Explain how large language models work.",
+            slug="llm_test",
+            duration=42,
+        )
+        faster = retime_plan(plan, 1.75)
+        self.assertLess(faster.duration, plan.duration)
+        self.assertAlmostEqual(faster.duration, round(plan.duration / 1.75, 1), delta=0.2)
+        self.assertTrue(all(scene.visual_kind == "llm" for scene in faster.scenes))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,144 @@
+{
+  "title": "How Large Language Models Work",
+  "slug": "large_language_models_director",
+  "source": "Concept prompt",
+  "format": "vertical",
+  "duration": 27.42,
+  "visual_thesis": "Large language models turn text into tokens, mix context through transformer layers, then predict the next token again and again.",
+  "central_object": "A row of token cards becoming vectors, flowing through a transformer, and growing one token at a time.",
+  "primary_transformation": "Readable text becomes token vectors, the vectors become context-aware, and prediction becomes a repeated generation loop.",
+  "scenes": [
+    {
+      "scene_id": "tokens_not_words",
+      "viewer_question": "What does an LLM actually read?",
+      "visual_object": "a sentence splitting into token cards",
+      "motion": "A sentence separates into small token cards.",
+      "meaning": "The model sees token IDs, not raw English paragraphs.",
+      "visible_text": [
+        "text",
+        "tokens"
+      ],
+      "caption": "The hidden trick is that text becomes tokens first.",
+      "duration": 4.57,
+      "visual_kind": "llm"
+    },
+    {
+      "scene_id": "tokens_to_vectors",
+      "viewer_question": "How can tokens carry meaning?",
+      "visual_object": "token cards becoming vector bars",
+      "motion": "Each token card drops into a small vector of numbers.",
+      "meaning": "Meaning becomes position in a learned numerical space.",
+      "visible_text": [
+        "token",
+        "vector"
+      ],
+      "caption": "Each token becomes a vector of numbers.",
+      "duration": 4.57,
+      "visual_kind": "llm"
+    },
+    {
+      "scene_id": "attention_reads_context",
+      "viewer_question": "How does the model use context?",
+      "visual_object": "one token sending attention arrows to nearby tokens",
+      "motion": "Arrows connect the current token to the tokens that change its meaning.",
+      "meaning": "Attention lets a token borrow context from the rest of the sentence.",
+      "visible_text": [
+        "query",
+        "context"
+      ],
+      "caption": "Attention lets each token look at the others for context.",
+      "duration": 4.57,
+      "visual_kind": "llm"
+    },
+    {
+      "scene_id": "transformer_layers",
+      "viewer_question": "Where does the reasoning happen?",
+      "visual_object": "vectors passing through attention and MLP blocks",
+      "motion": "The same vectors pass through repeated transformer layers.",
+      "meaning": "Layers mix context, transform features, and refine the representation.",
+      "visible_text": [
+        "attention",
+        "MLP",
+        "repeat"
+      ],
+      "caption": "Transformer layers repeatedly mix and refine those vectors.",
+      "duration": 4.57,
+      "visual_kind": "llm"
+    },
+    {
+      "scene_id": "predict_next_token",
+      "viewer_question": "What is the model trying to output?",
+      "visual_object": "a probability distribution over next-token choices",
+      "motion": "A bar chart appears with one token getting the highest probability.",
+      "meaning": "The immediate job is next-token prediction.",
+      "visible_text": [
+        "next token",
+        "probability"
+      ],
+      "caption": "The model predicts one next token, not a whole answer at once.",
+      "duration": 4.57,
+      "visual_kind": "llm"
+    },
+    {
+      "scene_id": "autoregressive_loop",
+      "viewer_question": "How does one token become a full answer?",
+      "visual_object": "new tokens appended into a growing sentence",
+      "motion": "The predicted token joins the prompt, then the loop repeats.",
+      "meaning": "Long answers come from repeating the same prediction loop.",
+      "visible_text": [
+        "predict",
+        "append",
+        "repeat"
+      ],
+      "caption": "Then the new token is fed back in and the loop continues.",
+      "duration": 4.57,
+      "visual_kind": "llm"
+    }
+  ],
+  "speed": 1.75,
+  "renderer": "director_renderer_v1",
+  "beats": [
+    {
+      "title": "tokens_not_words",
+      "caption": "The hidden trick is that text becomes tokens first.",
+      "visual": "llm",
+      "duration": 4.57
+    },
+    {
+      "title": "tokens_to_vectors",
+      "caption": "Each token becomes a vector of numbers.",
+      "visual": "llm",
+      "duration": 4.57
+    },
+    {
+      "title": "attention_reads_context",
+      "caption": "Attention lets each token look at the others for context.",
+      "visual": "llm",
+      "duration": 4.57
+    },
+    {
+      "title": "transformer_layers",
+      "caption": "Transformer layers repeatedly mix and refine those vectors.",
+      "visual": "llm",
+      "duration": 4.57
+    },
+    {
+      "title": "predict_next_token",
+      "caption": "The model predicts one next token, not a whole answer at once.",
+      "visual": "llm",
+      "duration": 4.57
+    },
+    {
+      "title": "autoregressive_loop",
+      "caption": "Then the new token is fed back in and the loop continues.",
+      "visual": "llm",
+      "duration": 4.57
+    }
+  ],
+  "output": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/large_language_models_director/exports/large_language_models_director_director_vertical_production.mp4",
+  "srt": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/large_language_models_director/exports/large_language_models_director_director_vertical_production.srt",
+  "width": 1080,
+  "height": 1920,
+  "fps": 24,
+  "quality": "production"
+}

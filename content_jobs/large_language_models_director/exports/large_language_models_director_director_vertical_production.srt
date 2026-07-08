@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:04,570
+The hidden trick is that text becomes tokens first.
+
+2
+00:00:04,570 --> 00:00:09,140
+Each token becomes a vector of numbers.
+
+3
+00:00:09,140 --> 00:00:13,710
+Attention lets each token look at the others for context.
+
+4
+00:00:13,710 --> 00:00:18,280
+Transformer layers repeatedly mix and refine those vectors.
+
+5
+00:00:18,280 --> 00:00:22,850
+The model predicts one next token, not a whole answer at once.
+
+6
+00:00:22,850 --> 00:00:27,420
+Then the new token is fed back in and the loop continues.

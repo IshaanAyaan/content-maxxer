@@ -2,7 +2,7 @@
 
 This is the next Content Maxxer backend target. It replaces the current template renderer with an AI director loop for explainers built around semantic motion.
 
-Status: the first `director` command now exists. It writes visual thesis and scene graph files, renders a lightweight director MP4, writes subtitles, creates a contact sheet, and can be evaluated with `content-maxxer evaluate --director`. Full Manim code generation is still the next step.
+Status: the first `director` command now exists. It writes visual thesis and scene graph files, renders a lightweight director MP4, writes subtitles, creates a contact sheet, and can be evaluated with `content-maxxer evaluate --director`. The command now defaults to faster shortform pacing with `--speed 1.75`, and the renderer uses larger callout/caption boxes for readability. Full Manim code generation is still the next step.
 
 ## User experience
 
@@ -129,7 +129,8 @@ Do not optimize for:
 1. Add a `director` command that writes `visual_thesis.md` and `scene_graph.json`. Done.
 2. Add a lightweight semantic renderer for fast end-to-end tests. Done.
 3. Add a quality evaluator for semantic motion and visible text. First pass done.
-4. Add a Manim scene generator that turns `scene_graph.json` into `scene.py`.
-5. Add a render/revise loop.
-6. Expand from hand-authored recipes to paper-grounded visual planning.
-7. Only then package for vertical social output as a channel-ready draft.
+4. Add faster pacing, larger caption boxes, and an LLM explainer recipe. Done.
+5. Add a Manim scene generator that turns `scene_graph.json` into `scene.py`.
+6. Add a render/revise loop.
+7. Expand from hand-authored recipes to paper-grounded visual planning.
+8. Only then package for vertical social output as a channel-ready draft.

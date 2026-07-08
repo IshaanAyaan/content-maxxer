@@ -1,20 +1,20 @@
 {
-  "video": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/gradient_descent_director/exports/gradient_descent_director_director_vertical_production.mp4",
+  "video": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/large_language_models_director/exports/large_language_models_director_director_vertical_production.mp4",
   "width": 1080,
   "height": 1920,
-  "duration": 18.3,
-  "beats": 5,
+  "duration": 27.42,
+  "beats": 6,
   "scores": {
     "format_match": 100.0,
     "subtitle_readability": 100.0,
     "pacing": 100.0,
     "visual_cadence": 100.0,
-    "hook_strength": 80.0,
+    "hook_strength": 100.0,
     "text_load": 100.0,
     "semantic_motion": 88.0,
     "human_storytelling": 84.0
   },
-  "overall": 94.0,
+  "overall": 96.5,
   "verdict": "director draft - review visually",
   "notes": [
     "Backend output passes the basic postability checks."

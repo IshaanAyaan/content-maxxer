@@ -19,7 +19,7 @@ from content_maxxer.backend import (
     write_evaluation_report,
     write_plan_files,
 )
-from content_maxxer.director import build_director_plan, render_director_video, write_director_files
+from content_maxxer.director import build_director_plan, render_director_video, retime_plan, write_director_files
 
 
 PLACEHOLDERS = {
@@ -167,6 +167,11 @@ def command_director(args: argparse.Namespace) -> int:
         video_format=args.format,
         duration=args.duration,
     )
+    try:
+        plan = retime_plan(plan, args.speed)
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        return 1
     write_director_files(job_dir, plan, idea)
     output = render_director_video(job_dir, plan, quality=args.quality, fps=args.fps)
     print(f"Director video: {output}")
@@ -290,7 +295,8 @@ def build_parser() -> argparse.ArgumentParser:
     director_parser.add_argument("--source-url", default="", help="Optional source URL.")
     director_parser.add_argument("--pdf", default="", help="Optional local PDF path for tracking.")
     director_parser.add_argument("--format", choices=["vertical", "horizontal", "square"], default="vertical")
-    director_parser.add_argument("--duration", type=float, default=30.0)
+    director_parser.add_argument("--duration", type=float, default=30.0, help="Base planning duration before speed is applied.")
+    director_parser.add_argument("--speed", type=float, default=1.75, help="Pacing multiplier. 1.75 makes the rendered video about 1.75x faster.")
     director_parser.add_argument("--quality", choices=["draft", "production"], default="draft")
     director_parser.add_argument("--fps", type=int, default=24)
     director_parser.add_argument("--force", action="store_true", help="Regenerate director files.")

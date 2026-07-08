@@ -3,7 +3,7 @@
   "slug": "gradient_descent_director",
   "source": "Concept prompt",
   "format": "vertical",
-  "duration": 32.0,
+  "duration": 18.3,
   "visual_thesis": "A model learns by repeatedly measuring local slope and taking small controlled downhill steps.",
   "central_object": "A dot moving on a single loss curve.",
   "primary_transformation": "Wild oversized movement becomes small repeated movement that settles near the minimum.",
@@ -19,7 +19,7 @@
         "misses"
       ],
       "caption": "A downhill step can still miss the bottom.",
-      "duration": 6.4,
+      "duration": 3.66,
       "visual_kind": "gradient"
     },
     {
@@ -33,7 +33,7 @@
         "direction"
       ],
       "caption": "The gradient reads the slope right here.",
-      "duration": 6.4,
+      "duration": 3.66,
       "visual_kind": "gradient"
     },
     {
@@ -46,7 +46,7 @@
         "small step"
       ],
       "caption": "A small step turns direction into progress.",
-      "duration": 6.4,
+      "duration": 3.66,
       "visual_kind": "gradient"
     },
     {
@@ -60,7 +60,7 @@
         "settle"
       ],
       "caption": "Repeat the correction and the dot settles.",
-      "duration": 6.4,
+      "duration": 3.66,
       "visual_kind": "gradient"
     },
     {
@@ -75,8 +75,9 @@
         "repeat"
       ],
       "caption": "Learning is measured movement repeated.",
-      "duration": 6.4,
+      "duration": 3.66,
       "visual_kind": "gradient"
     }
-  ]
+  ],
+  "speed": 1.75
 }
