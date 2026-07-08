@@ -37,6 +37,23 @@ I also inspected the public `3b1b/videos` repository locally. The code repeatedl
 - Reused domain objects, such as transformer blocks, token rectangles, matrices, curves, and geometric constructions.
 - Scene-specific helper functions instead of one generic global template.
 
+## What Caleb-style AI explainers add
+
+Caleb Writes Code sits closer to the short AI-explainer lane this repo is targeting. The useful pattern is different from pure math exposition:
+
+- The topic starts from a timely technical question.
+- The visuals stay punchy and legible rather than mathematically dense.
+- Each screen is built around a named technical object, such as a model, GPU, agent loop, benchmark, or system diagram.
+- The edit rhythm is faster than longform 3Blue1Brown, but still needs motion to mean something.
+
+For Content Maxxer, the blended style target is:
+
+```text
+3Blue1Brown visual continuity + Caleb-style AI topic selection + shortform pacing
+```
+
+We should study techniques and structure, not copy exact assets, scenes, scripts, or branded visual identity.
+
 ## What human-quality explainers need
 
 ### 1. A visual thesis
@@ -149,3 +166,4 @@ A generated video is not channel-ready unless:
 - Grant Sanderson's Manim demo post: https://3blue1brown.substack.com/p/how-i-animate-3blue1brown
 - Summer of Math Exposition: https://www.3blue1brown.com/blog/some1/
 - Manim Community: https://www.manim.community/
+- Caleb Writes Code channel: https://www.youtube.com/@CalebWritesCode

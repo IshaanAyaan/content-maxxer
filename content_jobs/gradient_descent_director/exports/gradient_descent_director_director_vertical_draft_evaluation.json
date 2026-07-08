@@ -1,0 +1,22 @@
+{
+  "video": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/gradient_descent_director/exports/gradient_descent_director_director_vertical_draft.mp4",
+  "width": 540,
+  "height": 960,
+  "duration": 32.0,
+  "beats": 5,
+  "scores": {
+    "format_match": 100.0,
+    "subtitle_readability": 100.0,
+    "pacing": 100.0,
+    "visual_cadence": 75.0,
+    "hook_strength": 80.0,
+    "text_load": 100.0,
+    "semantic_motion": 88.0,
+    "human_storytelling": 84.0
+  },
+  "overall": 90.9,
+  "verdict": "director draft - review visually",
+  "notes": [
+    "Backend output passes the basic postability checks."
+  ]
+}

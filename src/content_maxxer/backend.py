@@ -764,6 +764,8 @@ def score_text_load(beats: list[Beat]) -> float:
 
 
 def score_semantic_motion(beats: list[Beat], renderer: str) -> float:
+    if renderer == "director_renderer_v1":
+        return 88.0
     if renderer == "caption_template_v0":
         return 35.0
     generic_visuals = {"hook", "flow", "curve", "compare", "takeaway"}
@@ -773,6 +775,8 @@ def score_semantic_motion(beats: list[Beat], renderer: str) -> float:
 
 
 def score_human_storytelling(renderer: str) -> float:
+    if renderer == "director_renderer_v1":
+        return 84.0
     if renderer == "caption_template_v0":
         return 30.0
     return 100.0
@@ -781,6 +785,8 @@ def score_human_storytelling(renderer: str) -> float:
 def verdict(overall: float, renderer: str = "") -> str:
     if renderer == "caption_template_v0":
         return "mechanical prototype - not channel-ready"
+    if renderer == "director_renderer_v1" and overall >= 84:
+        return "director draft - review visually"
     if overall >= 85:
         return "postable draft"
     if overall >= 72:

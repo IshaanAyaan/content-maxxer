@@ -11,11 +11,15 @@ from content_maxxer.backend import (
     evaluate_export,
     load_plan_from_job,
     make_plan,
+    read_first_text,
+    read_source,
+    read_title,
     render_video,
     slugify,
     write_evaluation_report,
     write_plan_files,
 )
+from content_maxxer.director import build_director_plan, render_director_video, write_director_files
 
 
 PLACEHOLDERS = {
@@ -144,13 +148,42 @@ def command_package(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_director(args: argparse.Namespace) -> int:
+    repo_root = find_repo_root()
+    slug = args.slug or slugify(args.title)
+    job_dir = repo_root / "content_jobs" / slug
+    title = args.title or (read_title(job_dir) if job_dir.exists() else slug.replace("_", " ").title())
+    idea = args.idea or read_first_text(job_dir / "brief.md") or read_first_text(job_dir / "research.md") or title
+    source = args.source_url or args.pdf or (read_source(job_dir) if job_dir.exists() else "Concept prompt")
+    if job_dir.exists() and (job_dir / "scene_graph.json").exists() and not args.force:
+        print(f"Director files already exist: {job_dir}", file=sys.stderr)
+        print("Use --force to regenerate them.", file=sys.stderr)
+        return 1
+    plan = build_director_plan(
+        title=title,
+        idea=idea,
+        slug=slug,
+        source=source,
+        video_format=args.format,
+        duration=args.duration,
+    )
+    write_director_files(job_dir, plan, idea)
+    output = render_director_video(job_dir, plan, quality=args.quality, fps=args.fps)
+    print(f"Director video: {output}")
+    print(f"Scene graph: {job_dir / 'scene_graph.json'}")
+    return 0
+
+
 def command_evaluate(args: argparse.Namespace) -> int:
     repo_root = find_repo_root()
     if args.video:
         video_path = Path(args.video)
     else:
         job_dir = repo_root / "content_jobs" / args.slug
-        video_path = job_dir / "exports" / f"{args.slug}_{args.format}_{args.quality}.mp4"
+        prefix = f"{args.slug}_{args.format}_{args.quality}.mp4"
+        director_prefix = f"{args.slug}_director_{args.format}_{args.quality}.mp4"
+        director_video = job_dir / "exports" / director_prefix
+        video_path = director_video if args.director and director_video.exists() else job_dir / "exports" / prefix
     if not video_path.exists():
         print(f"Video not found: {video_path}", file=sys.stderr)
         return 1
@@ -250,11 +283,25 @@ def build_parser() -> argparse.ArgumentParser:
     package_parser.add_argument("--fps", type=int, default=24)
     package_parser.set_defaults(func=command_package)
 
+    director_parser = subparsers.add_parser("director", help="Generate a semantic scene graph and director-rendered MP4.")
+    director_parser.add_argument("--title", default="", help="Human-readable video title.")
+    director_parser.add_argument("--idea", default="", help="Paper, idea, or concept description.")
+    director_parser.add_argument("--slug", default="", help="Job id. Can point to an existing job.")
+    director_parser.add_argument("--source-url", default="", help="Optional source URL.")
+    director_parser.add_argument("--pdf", default="", help="Optional local PDF path for tracking.")
+    director_parser.add_argument("--format", choices=["vertical", "horizontal", "square"], default="vertical")
+    director_parser.add_argument("--duration", type=float, default=30.0)
+    director_parser.add_argument("--quality", choices=["draft", "production"], default="draft")
+    director_parser.add_argument("--fps", type=int, default=24)
+    director_parser.add_argument("--force", action="store_true", help="Regenerate director files.")
+    director_parser.set_defaults(func=command_director)
+
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate a generated video export.")
     evaluate_parser.add_argument("slug", nargs="?", default="", help="Job id under content_jobs/.")
     evaluate_parser.add_argument("--video", default="", help="Optional explicit MP4 path.")
     evaluate_parser.add_argument("--format", choices=["vertical", "horizontal", "square"], default="vertical")
     evaluate_parser.add_argument("--quality", choices=["draft", "production"], default="draft")
+    evaluate_parser.add_argument("--director", action="store_true", help="Prefer director-rendered export.")
     evaluate_parser.set_defaults(func=command_evaluate)
 
     doctor_parser = subparsers.add_parser("doctor", help="Check local render dependencies.")

@@ -1,0 +1,19 @@
+1
+00:00:00,000 --> 00:00:07,000
+Two models can tie on loss and land in different basins.
+
+2
+00:00:07,000 --> 00:00:14,000
+Downstream tasks care which valley you are near.
+
+3
+00:00:14,000 --> 00:00:21,000
+Nexus asks whether task directions agree.
+
+4
+00:00:21,000 --> 00:00:28,000
+Clone, step on batches, then measure the displacement.
+
+5
+00:00:28,000 --> 00:00:35,000
+Nexus changes the route, not just the score.

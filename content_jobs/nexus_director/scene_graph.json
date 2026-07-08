@@ -1,0 +1,83 @@
+{
+  "title": "Nexus",
+  "slug": "nexus_director",
+  "source": "https://arxiv.org/pdf/2604.09258",
+  "format": "vertical",
+  "duration": 35.0,
+  "visual_thesis": "Nexus treats pretraining as a path through a landscape, not just a final loss number.",
+  "central_object": "Two optimization paths moving across the same loss landscape.",
+  "primary_transformation": "Equal final score becomes visibly different landing geometry, then task agreement reshapes the route.",
+  "scenes": [
+    {
+      "scene_id": "same_score_different_basin",
+      "viewer_question": "How can two models tie on loss and behave differently downstream?",
+      "visual_object": "two dots on one contour landscape",
+      "motion": "Two colored paths descend to equal score lines but different basins.",
+      "meaning": "The score hides where optimization landed.",
+      "visible_text": [
+        "same loss",
+        "different basin"
+      ],
+      "caption": "Two models can tie on loss and land in different basins.",
+      "duration": 7.0,
+      "visual_kind": "nexus"
+    },
+    {
+      "scene_id": "downstream_valley",
+      "viewer_question": "Why does the landing place matter?",
+      "visual_object": "the same landscape plus a downstream target valley",
+      "motion": "One basin sits near the downstream valley while the other is far away.",
+      "meaning": "Downstream tasks care about closeness, not just the pretraining score.",
+      "visible_text": [
+        "downstream valley",
+        "closer"
+      ],
+      "caption": "Downstream tasks care which valley you are near.",
+      "duration": 7.0,
+      "visual_kind": "nexus"
+    },
+    {
+      "scene_id": "task_agreement",
+      "viewer_question": "What is Nexus trying to encourage?",
+      "visual_object": "task direction arrows from the same model point",
+      "motion": "Task arrows rotate from conflict into agreement.",
+      "meaning": "Nexus wants task directions to pull the model toward compatible regions.",
+      "visible_text": [
+        "conflict",
+        "agreement"
+      ],
+      "caption": "Nexus asks whether task directions agree.",
+      "duration": 7.0,
+      "visual_kind": "nexus"
+    },
+    {
+      "scene_id": "inner_steps_to_ghat",
+      "viewer_question": "How does the method estimate that agreement?",
+      "visual_object": "a model block, clone, mini-batches, and displacement arrow",
+      "motion": "The model clones, steps on batches, and turns the displacement into g_hat.",
+      "meaning": "Temporary inner motion becomes the training signal.",
+      "visible_text": [
+        "clone",
+        "batch steps",
+        "g_hat"
+      ],
+      "caption": "Clone, step on batches, then measure the displacement.",
+      "duration": 7.0,
+      "visual_kind": "nexus"
+    },
+    {
+      "scene_id": "nexus_takeaway",
+      "viewer_question": "What should the viewer remember?",
+      "visual_object": "the same route through the landscape",
+      "motion": "The route glows while the scorecard fades back.",
+      "meaning": "The path through training is the object Nexus changes.",
+      "visible_text": [
+        "route",
+        "not just score"
+      ],
+      "caption": "Nexus changes the route, not just the score.",
+      "duration": 7.0,
+      "visual_kind": "nexus"
+    }
+  ]
+}

@@ -9,6 +9,7 @@ from content_maxxer.backend import (
     score_subtitles,
     slugify,
 )
+from content_maxxer.director import build_director_plan
 
 
 class BackendTests(unittest.TestCase):
@@ -33,6 +34,16 @@ class BackendTests(unittest.TestCase):
         self.assertGreaterEqual(score_subtitles(beats), 80.0)
         self.assertEqual(score_pacing(beats), 100.0)
         self.assertEqual(score_semantic_motion(beats, "caption_template_v0"), 35.0)
+
+    def test_director_plan_has_semantic_scenes(self):
+        plan = build_director_plan(
+            title="Gradient Descent",
+            idea="A dot moves down a loss curve by reading local slope.",
+            slug="gradient_descent_test",
+        )
+        self.assertIn("dot", plan.central_object.lower())
+        self.assertTrue(all(scene.motion for scene in plan.scenes))
+        self.assertTrue(all("Hook" not in scene.visible_text for scene in plan.scenes))
 
 
 if __name__ == "__main__":

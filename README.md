@@ -1,6 +1,6 @@
 # Content Maxxer
 
-Content Maxxer is a public repo for turning high-context prompts into shortform explainer videos, starting with Manim-based research animations.
+Content Maxxer is a public repo for turning high-context prompts into shortform explainer videos, starting with research and technical explainers.
 
 The first seed example is `nexus_explainer_h`: a 56 second 1920x1080 Manim-style visual explainer. It has no audio track yet, which makes it a clean reference for the visual workflow before adding narration, captions, shorts crops, and slide content later.
 
@@ -18,7 +18,7 @@ The goal is to make "contentmaxxing" systematic: one source in, one polished vid
 
 For the current research pass on AI-native shorts workflows, see [docs/ai-shorts-research.md](docs/ai-shorts-research.md).
 
-For the new quality reset after studying human-made visual explainers, see [docs/human-explainer-study.md](docs/human-explainer-study.md) and [docs/director-system.md](docs/director-system.md).
+For the quality reset after studying human-made visual explainers, see [docs/human-explainer-study.md](docs/human-explainer-study.md), [docs/director-system.md](docs/director-system.md), and [docs/director-test-report.md](docs/director-test-report.md).
 
 ## Quick start
 
@@ -68,6 +68,23 @@ content-maxxer make-video \
   --quality draft
 ```
 
+That command is the old baseline renderer. It proves the backend can write an MP4 and subtitles, but it is not the target quality bar.
+
+Generate a semantic director video:
+
+```bash
+content-maxxer director \
+  --slug gradient_descent_director \
+  --title "Gradient Descent" \
+  --idea "Gradient descent is how a model improves by reading the slope of the loss curve, taking a controlled downhill step, and repeating until it settles near a minimum." \
+  --format vertical \
+  --duration 32 \
+  --quality production \
+  --force
+```
+
+The director path writes a visual thesis, scene graph, storyboard, subtitles, MP4, render manifest, and contact sheet. It is the current serious backend path because scenes are driven by a central visual object and semantic motion instead of generic beat templates.
+
 Package an existing job into a captioned MP4:
 
 ```bash
@@ -78,6 +95,7 @@ Evaluate a generated export:
 
 ```bash
 content-maxxer evaluate nexus_explainer_h --format vertical --quality draft
+content-maxxer evaluate gradient_descent_director --format vertical --quality production --director
 ```
 
 ## Repo layout
@@ -95,10 +113,12 @@ docs/
   backend-workflow.md        Small backend path for idea-to-captioned-video.
   human-explainer-study.md   What good human visual explainers do differently.
   director-system.md         Target AI director loop for Manim-style explainers.
+  director-test-report.md    Results from semantic director sample videos.
   test-report.md             Results from generated backend test videos.
 src/content_maxxer/
   cli.py                     Commands for creating and rendering jobs.
   backend.py                 Caption-led video renderer and evaluator.
+  director.py                Semantic director planner and renderer.
 ```
 
 ## Next lanes

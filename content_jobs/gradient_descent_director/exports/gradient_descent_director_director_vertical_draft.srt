@@ -1,0 +1,19 @@
+1
+00:00:00,000 --> 00:00:06,400
+A downhill step can still miss the bottom.
+
+2
+00:00:06,400 --> 00:00:12,800
+The gradient reads the slope right here.
+
+3
+00:00:12,800 --> 00:00:19,200
+A small step turns direction into progress.
+
+4
+00:00:19,200 --> 00:00:25,600
+Repeat the correction and the dot settles.
+
+5
+00:00:25,600 --> 00:00:32,000
+Learning is measured movement repeated.

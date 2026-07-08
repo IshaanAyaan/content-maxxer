@@ -1,0 +1,121 @@
+{
+  "title": "Gradient Descent",
+  "slug": "gradient_descent_director",
+  "source": "Concept prompt",
+  "format": "vertical",
+  "duration": 32.0,
+  "visual_thesis": "A model learns by repeatedly measuring local slope and taking small controlled downhill steps.",
+  "central_object": "A dot moving on a single loss curve.",
+  "primary_transformation": "Wild oversized movement becomes small repeated movement that settles near the minimum.",
+  "scenes": [
+    {
+      "scene_id": "too_big_step",
+      "viewer_question": "Why can a model fail even when it knows the downhill direction?",
+      "visual_object": "one dot on a loss curve",
+      "motion": "The dot jumps across the bottom when the step is too large.",
+      "meaning": "Direction is not enough; step size controls whether learning behaves.",
+      "visible_text": [
+        "too large",
+        "misses"
+      ],
+      "caption": "A downhill step can still miss the bottom.",
+      "duration": 6.4,
+      "visual_kind": "gradient"
+    },
+    {
+      "scene_id": "read_slope",
+      "viewer_question": "What does the gradient actually tell us?",
+      "visual_object": "tangent arrow on the same curve",
+      "motion": "A tangent appears at the current dot and points downhill.",
+      "meaning": "The gradient is a local measurement, not a map of the whole valley.",
+      "visible_text": [
+        "slope",
+        "direction"
+      ],
+      "caption": "The gradient reads the slope right here.",
+      "duration": 6.4,
+      "visual_kind": "gradient"
+    },
+    {
+      "scene_id": "small_step",
+      "viewer_question": "What makes the movement useful?",
+      "visual_object": "the same dot and a shorter arrow",
+      "motion": "The dot takes one small controlled step.",
+      "meaning": "Learning improves when movement is measured.",
+      "visible_text": [
+        "small step"
+      ],
+      "caption": "A small step turns direction into progress.",
+      "duration": 6.4,
+      "visual_kind": "gradient"
+    },
+    {
+      "scene_id": "repeat_settle",
+      "viewer_question": "Why does repetition matter?",
+      "visual_object": "a trail of dots converging to the minimum",
+      "motion": "Each new dot lands closer to the bottom.",
+      "meaning": "The algorithm works by repeating one local correction.",
+      "visible_text": [
+        "repeat",
+        "settle"
+      ],
+      "caption": "Repeat the correction and the dot settles.",
+      "duration": 6.4,
+      "visual_kind": "gradient"
+    },
+    {
+      "scene_id": "gradient_takeaway",
+      "viewer_question": "What should the viewer remember?",
+      "visual_object": "the same curve with a simple loop",
+      "motion": "Measure, step, and repeat labels orbit the minimum.",
+      "meaning": "Gradient descent is measured movement, not magic.",
+      "visible_text": [
+        "measure",
+        "step",
+        "repeat"
+      ],
+      "caption": "Learning is measured movement repeated.",
+      "duration": 6.4,
+      "visual_kind": "gradient"
+    }
+  ],
+  "renderer": "director_renderer_v1",
+  "beats": [
+    {
+      "title": "too_big_step",
+      "caption": "A downhill step can still miss the bottom.",
+      "visual": "gradient",
+      "duration": 6.4
+    },
+    {
+      "title": "read_slope",
+      "caption": "The gradient reads the slope right here.",
+      "visual": "gradient",
+      "duration": 6.4
+    },
+    {
+      "title": "small_step",
+      "caption": "A small step turns direction into progress.",
+      "visual": "gradient",
+      "duration": 6.4
+    },
+    {
+      "title": "repeat_settle",
+      "caption": "Repeat the correction and the dot settles.",
+      "visual": "gradient",
+      "duration": 6.4
+    },
+    {
+      "title": "gradient_takeaway",
+      "caption": "Learning is measured movement repeated.",
+      "visual": "gradient",
+      "duration": 6.4
+    }
+  ],
+  "output": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/gradient_descent_director/exports/gradient_descent_director_director_vertical_draft.mp4",
+  "srt": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/gradient_descent_director/exports/gradient_descent_director_director_vertical_draft.srt",
+  "width": 540,
+  "height": 960,
+  "fps": 24,
+  "quality": "draft"
+}
