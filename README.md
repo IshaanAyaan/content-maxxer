@@ -20,6 +20,8 @@ For the current research pass on AI-native shorts workflows, see [docs/ai-shorts
 
 For the quality reset after studying human-made visual explainers, see [docs/human-explainer-study.md](docs/human-explainer-study.md), [docs/director-system.md](docs/director-system.md), and [docs/director-test-report.md](docs/director-test-report.md).
 
+For the new static carousel lane, see [docs/slide-system.md](docs/slide-system.md) and [docs/slide-test-report.md](docs/slide-test-report.md).
+
 ## Quick start
 
 Install the backend video dependencies first:
@@ -93,6 +95,20 @@ make director-llm
 make evaluate-director-llm
 ```
 
+Generate a slide carousel instead of a video:
+
+```bash
+content-maxxer slides \
+  --slug large_language_models_slides \
+  --title "How Large Language Models Work" \
+  --idea "Explain how large language models work: text becomes tokens, tokens become vectors, attention mixes context, transformer layers refine meaning, the model predicts the next token, and repeating that loop creates an answer." \
+  --platform tiktok \
+  --quality production \
+  --force
+```
+
+The slide lane exports numbered PNGs, a contact sheet, a manifest, a storyboard, and a slide-specific evaluation report. It is meant for TikTok Photo Mode, Instagram-style carousel posts, and swipe-through explainers.
+
 Package an existing job into a captioned MP4:
 
 ```bash
@@ -105,6 +121,7 @@ Evaluate a generated export:
 content-maxxer evaluate nexus_explainer_h --format vertical --quality draft
 content-maxxer evaluate gradient_descent_director --format vertical --quality production --director
 content-maxxer evaluate large_language_models_director --format vertical --quality production --director
+content-maxxer evaluate-slides large_language_models_slides --platform tiktok --quality production
 ```
 
 ## Repo layout
@@ -123,11 +140,14 @@ docs/
   human-explainer-study.md   What good human visual explainers do differently.
   director-system.md         Target AI director loop for Manim-style explainers.
   director-test-report.md    Results from semantic director sample videos.
+  slide-system.md            Static carousel workflow for swipe-through explainers.
+  slide-test-report.md       Results from generated carousel decks.
   test-report.md             Results from generated backend test videos.
 src/content_maxxer/
   cli.py                     Commands for creating and rendering jobs.
   backend.py                 Caption-led video renderer and evaluator.
   director.py                Semantic director planner and renderer.
+  slides.py                  Social carousel planner, renderer, and evaluator.
 ```
 
 ## Next lanes

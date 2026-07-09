@@ -1,0 +1,91 @@
+{
+  "title": "Nexus",
+  "slug": "nexus_slides",
+  "source": "https://arxiv.org/pdf/2604.09258",
+  "platform": "tiktok",
+  "width": 1080,
+  "height": 1920,
+  "thesis": "Nexus explains why the route through optimization matters even when final loss looks the same.",
+  "audience_action": "Swipe away seeing loss as a landscape route, not a single number.",
+  "slides": [
+    {
+      "slide_id": "01_hook",
+      "role": "hook",
+      "eyebrow": "Nexus in one picture",
+      "headline": "Same loss. Different model.",
+      "body": "Two models can tie on pretraining loss and still land in different downstream regions.",
+      "visual": "basins",
+      "bullets": [
+        "same score",
+        "different basin"
+      ],
+      "footer": "The path matters"
+    },
+    {
+      "slide_id": "02_problem",
+      "role": "problem",
+      "eyebrow": "The hidden problem",
+      "headline": "Loss is a scoreboard.",
+      "body": "A scoreboard tells you the number. It does not tell you where training landed.",
+      "visual": "score_vs_route",
+      "bullets": [
+        "score",
+        "route"
+      ],
+      "footer": "Scores hide geometry"
+    },
+    {
+      "slide_id": "03_valley",
+      "role": "mechanism",
+      "eyebrow": "Why it matters",
+      "headline": "Downstream tasks live in valleys.",
+      "body": "If a model lands near useful downstream valleys, adaptation gets easier.",
+      "visual": "downstream_valley",
+      "bullets": [
+        "near",
+        "far"
+      ],
+      "footer": "Location matters"
+    },
+    {
+      "slide_id": "04_agreement",
+      "role": "mechanism",
+      "eyebrow": "The Nexus question",
+      "headline": "Do tasks pull together?",
+      "body": "Nexus asks whether task directions agree or fight with each other during training.",
+      "visual": "task_arrows",
+      "bullets": [
+        "conflict",
+        "agreement"
+      ],
+      "footer": "Agreement is signal"
+    },
+    {
+      "slide_id": "05_inner_loop",
+      "role": "mechanism",
+      "eyebrow": "How it checks",
+      "headline": "Clone. Step. Measure.",
+      "body": "Temporary inner steps estimate how training moves the model under task batches.",
+      "visual": "inner_loop",
+      "bullets": [
+        "clone",
+        "batch steps",
+        "g_hat"
+      ],
+      "footer": "Measure movement"
+    },
+    {
+      "slide_id": "06_takeaway",
+      "role": "takeaway",
+      "eyebrow": "Remember this",
+      "headline": "Nexus changes the route.",
+      "body": "The paper is about shaping the training path, not just lowering one final score.",
+      "visual": "route_takeaway",
+      "bullets": [
+        "route",
+        "not just score"
+      ],
+      "footer": "Save the visual"
+    }
+  ]
+}

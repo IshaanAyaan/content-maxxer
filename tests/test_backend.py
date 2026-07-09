@@ -1,4 +1,6 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 from content_maxxer.backend import (
     format_srt_time,
@@ -10,6 +12,7 @@ from content_maxxer.backend import (
     slugify,
 )
 from content_maxxer.director import build_director_plan, retime_plan
+from content_maxxer.slides import build_slide_deck, evaluate_slide_deck, render_slide_deck, write_slide_deck_files
 
 
 class BackendTests(unittest.TestCase):
@@ -56,6 +59,35 @@ class BackendTests(unittest.TestCase):
         self.assertLess(faster.duration, plan.duration)
         self.assertAlmostEqual(faster.duration, round(plan.duration / 1.75, 1), delta=0.2)
         self.assertTrue(all(scene.visual_kind == "llm" for scene in faster.scenes))
+
+    def test_slide_deck_builds_llm_carousel(self):
+        deck = build_slide_deck(
+            title="How Large Language Models Work",
+            idea="Explain how large language models work.",
+            slug="llm_slides",
+            platform="tiktok",
+        )
+        self.assertEqual(deck.width, 1080)
+        self.assertEqual(deck.height, 1920)
+        self.assertEqual(len(deck.slides), 8)
+        self.assertEqual(deck.slides[0].role, "hook")
+        self.assertTrue(any(slide.visual == "attention_arcs" for slide in deck.slides))
+
+    def test_slide_renderer_writes_and_evaluates_exports(self):
+        deck = build_slide_deck(
+            title="Gradient Descent",
+            idea="Gradient descent takes small downhill steps.",
+            slug="gradient_slides_test",
+            platform="tiktok",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            job_dir = Path(tmp) / "gradient_slides_test"
+            write_slide_deck_files(job_dir, deck, "Gradient descent takes small downhill steps.")
+            export_dir = render_slide_deck(job_dir, deck, quality="draft")
+            result = evaluate_slide_deck(export_dir)
+            self.assertTrue((export_dir / "contact_sheet.png").exists())
+            self.assertEqual(result["slides"], len(deck.slides))
+            self.assertGreaterEqual(result["overall"], 80.0)
 
 
 if __name__ == "__main__":

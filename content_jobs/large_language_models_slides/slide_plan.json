@@ -1,0 +1,129 @@
+{
+  "title": "How Large Language Models Work",
+  "slug": "large_language_models_slides",
+  "source": "Concept prompt",
+  "platform": "tiktok",
+  "width": 1080,
+  "height": 1920,
+  "thesis": "Large language models are a repeated next-token prediction loop built on tokens, vectors, attention, and transformer layers.",
+  "audience_action": "Swipe away understanding the loop, not memorizing jargon.",
+  "slides": [
+    {
+      "slide_id": "01_hook",
+      "role": "hook",
+      "eyebrow": "LLMs, minus the fog",
+      "headline": "It is not reading words.",
+      "body": "A language model turns text into tiny IDs, then learns what should come next.",
+      "visual": "token_split",
+      "bullets": [
+        "text",
+        "tokens",
+        "numbers",
+        "next token"
+      ],
+      "footer": "Swipe for the whole loop"
+    },
+    {
+      "slide_id": "02_map",
+      "role": "map",
+      "eyebrow": "The whole loop",
+      "headline": "Text goes in. One token comes out.",
+      "body": "Everything else is the machinery that makes that next-token guess smarter.",
+      "visual": "pipeline",
+      "bullets": [
+        "tokenize",
+        "mix context",
+        "predict",
+        "repeat"
+      ],
+      "footer": "Keep one loop in your head"
+    },
+    {
+      "slide_id": "03_tokens",
+      "role": "mechanism",
+      "eyebrow": "Step 1",
+      "headline": "Text becomes tokens.",
+      "body": "Tokens are chunks the model can count. Some are words. Some are pieces.",
+      "visual": "token_cards",
+      "bullets": [
+        "Large",
+        "language",
+        "models",
+        "work"
+      ],
+      "footer": "The model sees IDs"
+    },
+    {
+      "slide_id": "04_vectors",
+      "role": "mechanism",
+      "eyebrow": "Step 2",
+      "headline": "Tokens become vectors.",
+      "body": "Each token becomes a point in a learned space where meaning can be compared.",
+      "visual": "vector_space",
+      "bullets": [
+        "token",
+        "embedding",
+        "meaning space"
+      ],
+      "footer": "Meaning becomes geometry"
+    },
+    {
+      "slide_id": "05_attention",
+      "role": "mechanism",
+      "eyebrow": "Step 3",
+      "headline": "Attention decides what matters.",
+      "body": "Every token looks at the other tokens and borrows the context it needs.",
+      "visual": "attention_arcs",
+      "bullets": [
+        "query",
+        "key",
+        "value",
+        "context"
+      ],
+      "footer": "This is the context engine"
+    },
+    {
+      "slide_id": "06_layers",
+      "role": "mechanism",
+      "eyebrow": "Step 4",
+      "headline": "Layers refine the guess.",
+      "body": "Transformer blocks keep mixing and reshaping the vectors until the next token is clearer.",
+      "visual": "layer_stack",
+      "bullets": [
+        "attention",
+        "MLP",
+        "residual",
+        "repeat"
+      ],
+      "footer": "A little clearer each layer"
+    },
+    {
+      "slide_id": "07_prediction",
+      "role": "payoff",
+      "eyebrow": "Step 5",
+      "headline": "It picks a next token.",
+      "body": "The model scores many possible next tokens, then samples one from the distribution.",
+      "visual": "probability_bars",
+      "bullets": [
+        "tokens",
+        "words",
+        "pizza"
+      ],
+      "footer": "One choice, many possibilities"
+    },
+    {
+      "slide_id": "08_takeaway",
+      "role": "takeaway",
+      "eyebrow": "The mental model",
+      "headline": "LLMs are next-token engines.",
+      "body": "The magic is not one giant answer. It is a tiny prediction loop repeated very fast.",
+      "visual": "loop",
+      "bullets": [
+        "predict",
+        "append",
+        "repeat"
+      ],
+      "footer": "Save this loop"
+    }
+  ]
+}

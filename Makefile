@@ -1,4 +1,4 @@
-.PHONY: setup doctor new render-nexus render package-nexus demo-video director-gradient director-nexus director-llm evaluate-nexus evaluate-demo evaluate-director-gradient evaluate-director-nexus evaluate-director-llm test
+.PHONY: setup doctor new render-nexus render package-nexus demo-video director-gradient director-nexus director-llm slides-llm slides-nexus evaluate-nexus evaluate-demo evaluate-director-gradient evaluate-director-nexus evaluate-director-llm evaluate-slides-llm evaluate-slides-nexus test
 
 setup:
 	python3 -m venv .venv
@@ -31,6 +31,12 @@ director-nexus:
 director-llm:
 	. .venv/bin/activate && content-maxxer director --slug large_language_models_director --title "How Large Language Models Work" --idea "Explain how large language models work: text becomes tokens, tokens become vectors, attention mixes context, transformer layers refine meaning, the model predicts the next token, and repeating that loop creates an answer." --format vertical --duration 48 --speed 1.75 --quality production --force
 
+slides-llm:
+	. .venv/bin/activate && content-maxxer slides --slug large_language_models_slides --title "How Large Language Models Work" --idea "Explain how large language models work: text becomes tokens, tokens become vectors, attention mixes context, transformer layers refine meaning, the model predicts the next token, and repeating that loop creates an answer." --platform tiktok --quality production --force
+
+slides-nexus:
+	. .venv/bin/activate && content-maxxer slides --slug nexus_slides --title "Nexus" --idea "Nexus shows why two models can have the same pretraining loss but land in different optimization basins, and why downstream tasks care about the route through the landscape rather than only the score." --source-url "https://arxiv.org/pdf/2604.09258" --platform tiktok --quality production --force
+
 evaluate-nexus:
 	. .venv/bin/activate && content-maxxer evaluate nexus_explainer_h --format vertical --quality draft
 
@@ -45,6 +51,12 @@ evaluate-director-nexus:
 
 evaluate-director-llm:
 	. .venv/bin/activate && content-maxxer evaluate large_language_models_director --format vertical --quality production --director
+
+evaluate-slides-llm:
+	. .venv/bin/activate && content-maxxer evaluate-slides large_language_models_slides --platform tiktok --quality production
+
+evaluate-slides-nexus:
+	. .venv/bin/activate && content-maxxer evaluate-slides nexus_slides --platform tiktok --quality production
 
 test:
 	. .venv/bin/activate && python -m unittest discover -s tests

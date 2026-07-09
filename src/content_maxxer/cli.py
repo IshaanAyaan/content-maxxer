@@ -20,6 +20,13 @@ from content_maxxer.backend import (
     write_plan_files,
 )
 from content_maxxer.director import build_director_plan, render_director_video, retime_plan, write_director_files
+from content_maxxer.slides import (
+    build_slide_deck,
+    evaluate_slide_deck,
+    render_slide_deck,
+    write_slide_deck_files,
+    write_slide_evaluation,
+)
 
 
 PLACEHOLDERS = {
@@ -179,6 +186,32 @@ def command_director(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_slides(args: argparse.Namespace) -> int:
+    repo_root = find_repo_root()
+    slug = args.slug or slugify(args.title)
+    job_dir = repo_root / "content_jobs" / slug
+    title = args.title or (read_title(job_dir) if job_dir.exists() else slug.replace("_", " ").title())
+    idea = args.idea or read_first_text(job_dir / "brief.md") or read_first_text(job_dir / "research.md") or title
+    source = args.source_url or args.pdf or (read_source(job_dir) if job_dir.exists() else "Concept prompt")
+    if job_dir.exists() and (job_dir / "slide_plan.json").exists() and not args.force:
+        print(f"Slide files already exist: {job_dir}", file=sys.stderr)
+        print("Use --force to regenerate them.", file=sys.stderr)
+        return 1
+    deck = build_slide_deck(
+        title=title,
+        idea=idea,
+        slug=slug,
+        source=source,
+        platform=args.platform,
+        slide_count=args.count,
+    )
+    write_slide_deck_files(job_dir, deck, idea)
+    output_dir = render_slide_deck(job_dir, deck, quality=args.quality)
+    print(f"Slide deck: {output_dir}")
+    print(f"Contact sheet: {output_dir / 'contact_sheet.png'}")
+    return 0
+
+
 def command_evaluate(args: argparse.Namespace) -> int:
     repo_root = find_repo_root()
     if args.video:
@@ -198,6 +231,26 @@ def command_evaluate(args: argparse.Namespace) -> int:
     write_evaluation_report(result, report_path)
     json_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(f"Evaluation: {result['overall']}/100 ({result['verdict']})")
+    print(f"Report: {report_path}")
+    return 0
+
+
+def command_evaluate_slides(args: argparse.Namespace) -> int:
+    repo_root = find_repo_root()
+    if args.path:
+        export_dir = Path(args.path)
+    else:
+        job_dir = repo_root / "content_jobs" / args.slug
+        export_dir = job_dir / "exports" / f"slides_{args.platform}_{args.quality}"
+    if not export_dir.exists():
+        print(f"Slide export not found: {export_dir}", file=sys.stderr)
+        return 1
+    result = evaluate_slide_deck(export_dir)
+    report_path = export_dir / "evaluation.md"
+    json_path = export_dir / "evaluation.json"
+    write_slide_evaluation(result, report_path)
+    json_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    print(f"Slide evaluation: {result['overall']}/100 ({result['verdict']})")
     print(f"Report: {report_path}")
     return 0
 
@@ -302,6 +355,18 @@ def build_parser() -> argparse.ArgumentParser:
     director_parser.add_argument("--force", action="store_true", help="Regenerate director files.")
     director_parser.set_defaults(func=command_director)
 
+    slides_parser = subparsers.add_parser("slides", help="Generate a social carousel slide deck.")
+    slides_parser.add_argument("--title", default="", help="Human-readable slide deck title.")
+    slides_parser.add_argument("--idea", default="", help="Paper, idea, or concept description.")
+    slides_parser.add_argument("--slug", default="", help="Job id. Can point to an existing job.")
+    slides_parser.add_argument("--source-url", default="", help="Optional source URL.")
+    slides_parser.add_argument("--pdf", default="", help="Optional local PDF path for tracking.")
+    slides_parser.add_argument("--platform", choices=["tiktok", "reels", "instagram", "square"], default="tiktok")
+    slides_parser.add_argument("--count", type=int, default=8, help="Target slide count for generic decks.")
+    slides_parser.add_argument("--quality", choices=["draft", "production"], default="production")
+    slides_parser.add_argument("--force", action="store_true", help="Regenerate slide files.")
+    slides_parser.set_defaults(func=command_slides)
+
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate a generated video export.")
     evaluate_parser.add_argument("slug", nargs="?", default="", help="Job id under content_jobs/.")
     evaluate_parser.add_argument("--video", default="", help="Optional explicit MP4 path.")
@@ -309,6 +374,13 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_parser.add_argument("--quality", choices=["draft", "production"], default="draft")
     evaluate_parser.add_argument("--director", action="store_true", help="Prefer director-rendered export.")
     evaluate_parser.set_defaults(func=command_evaluate)
+
+    evaluate_slides_parser = subparsers.add_parser("evaluate-slides", help="Evaluate a generated slide export.")
+    evaluate_slides_parser.add_argument("slug", nargs="?", default="", help="Job id under content_jobs/.")
+    evaluate_slides_parser.add_argument("--path", default="", help="Optional explicit slide export directory.")
+    evaluate_slides_parser.add_argument("--platform", choices=["tiktok", "reels", "instagram", "square"], default="tiktok")
+    evaluate_slides_parser.add_argument("--quality", choices=["draft", "production"], default="production")
+    evaluate_slides_parser.set_defaults(func=command_evaluate_slides)
 
     doctor_parser = subparsers.add_parser("doctor", help="Check local render dependencies.")
     doctor_parser.set_defaults(func=command_doctor)

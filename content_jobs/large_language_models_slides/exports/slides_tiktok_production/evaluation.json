@@ -1,0 +1,20 @@
+{
+  "export_dir": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/large_language_models_slides/exports/slides_tiktok_production",
+  "platform": "tiktok",
+  "width": 1080,
+  "height": 1920,
+  "slides": 8,
+  "scores": {
+    "format_match": 100.0,
+    "slide_count": 100.0,
+    "text_load": 100.0,
+    "hook_strength": 100.0,
+    "visual_variety": 100.0,
+    "export_completeness": 100.0
+  },
+  "overall": 100.0,
+  "verdict": "postable slide draft",
+  "notes": [
+    "Slide deck passes the basic carousel checks."
+  ]
+}
