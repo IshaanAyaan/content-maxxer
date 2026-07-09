@@ -109,6 +109,13 @@ content-maxxer slides \
 
 The slide lane exports numbered PNGs, a contact sheet, a manifest, a storyboard, and a slide-specific evaluation report. It is meant for TikTok Photo Mode, Instagram-style carousel posts, and swipe-through explainers.
 
+Generate the current higher-engagement AI agent post candidate:
+
+```bash
+make slides-agents
+make evaluate-slides-agents
+```
+
 Package an existing job into a captioned MP4:
 
 ```bash
@@ -122,6 +129,7 @@ content-maxxer evaluate nexus_explainer_h --format vertical --quality draft
 content-maxxer evaluate gradient_descent_director --format vertical --quality production --director
 content-maxxer evaluate large_language_models_director --format vertical --quality production --director
 content-maxxer evaluate-slides large_language_models_slides --platform tiktok --quality production
+content-maxxer evaluate-slides ai_agents_reliability_slides --platform tiktok --quality production
 ```
 
 ## Repo layout

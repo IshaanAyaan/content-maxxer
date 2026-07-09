@@ -73,6 +73,18 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(deck.slides[0].role, "hook")
         self.assertTrue(any(slide.visual == "attention_arcs" for slide in deck.slides))
 
+    def test_slide_deck_builds_agent_reliability_carousel(self):
+        deck = build_slide_deck(
+            title="AI Agents Are Not Employees Yet",
+            idea="Explain why AI agents are overhyped: benchmark scores are improving, but real-world reliability still depends on consistency and cost.",
+            slug="agent_slides",
+            platform="tiktok",
+        )
+        self.assertEqual(len(deck.slides), 8)
+        self.assertIn("1-in-3", deck.slides[0].headline)
+        self.assertTrue(any(slide.visual == "cost_accuracy" for slide in deck.slides))
+        self.assertTrue(any(slide.visual == "safe_fail_loop" for slide in deck.slides))
+
     def test_slide_renderer_writes_and_evaluates_exports(self):
         deck = build_slide_deck(
             title="Gradient Descent",

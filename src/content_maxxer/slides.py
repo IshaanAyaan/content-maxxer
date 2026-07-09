@@ -77,6 +77,8 @@ def build_slide_deck(
     slug = slug or slugify(title)
     width, height = SLIDE_SIZES.get(platform, SLIDE_SIZES["tiktok"])
     key = f"{title} {idea}".lower()
+    if "agent" in key and any(term in key for term in ["reliability", "benchmark", "hype", "employee", "fail"]):
+        return agent_reliability_slide_deck(title, slug, source, platform, width, height)
     if "large language model" in key or "llm" in key or "language model" in key:
         return llm_slide_deck(title, slug, source, platform, width, height)
     if "nexus" in key:
@@ -225,6 +227,102 @@ def gradient_slide_deck(title: str, slug: str, source: str, platform: str, width
     )
 
 
+def agent_reliability_slide_deck(title: str, slug: str, source: str, platform: str, width: int, height: int) -> SlideDeck:
+    slides = [
+        Slide(
+            "01_hook",
+            "hook",
+            "AI agent hype check",
+            "Would you hire a 1-in-3 failure?",
+            "Agents are getting scary good. But reliability is still the part everyone tries to skip.",
+            "pass_fail_grid",
+            ["pass", "pass", "fail"],
+            "Swipe before you buy the hype",
+        ),
+        Slide(
+            "02_progress",
+            "context",
+            "The progress is real",
+            "Agents jumped from 12% to 66%.",
+            "OSWorld jumped from about 12% to 66.3%. Huge progress. Still about one failure in three.",
+            "benchmark_bars",
+            ["12%", "66.3%", "human"],
+            "Better is not reliable",
+        ),
+        Slide(
+            "03_benchmark_trap",
+            "problem",
+            "The benchmark trap",
+            "The leaderboard is lying by omission.",
+            "One score hides cost, consistency, predictability, and how bad failure gets.",
+            "scorecard_crack",
+            ["score", "cost", "consistency", "severity"],
+            "A score is not a product",
+        ),
+        Slide(
+            "04_reliability",
+            "mechanism",
+            "The missing test",
+            "Reliability is not accuracy.",
+            "A useful agent should work across reruns, small changes, uncertainty, and bad outcomes.",
+            "reliability_quadrants",
+            ["consistency", "robustness", "predictability", "safety"],
+            "This is the missing test",
+        ),
+        Slide(
+            "05_cost",
+            "mechanism",
+            "The cost trap",
+            "Spends $8 to save $2?",
+            "Princeton's point: accuracy and cost belong on the same chart.",
+            "cost_accuracy",
+            ["accuracy", "cost", "useful"],
+            "Expensive magic is still expensive",
+        ),
+        Slide(
+            "06_where_it_works",
+            "filter",
+            "Where agents actually work",
+            "Useful agents are boxed in.",
+            "Narrow, checkable, reversible tasks are where agent workflows start to make sense.",
+            "guardrails",
+            ["narrow", "checkable", "reversible"],
+            "Box the task first",
+        ),
+        Slide(
+            "07_build",
+            "solution",
+            "The useful wrapper",
+            "Do not buy autonomy. Build supervision.",
+            "Useful agents need logs, verifiers, permissions, tools, and human review.",
+            "supervision_loop",
+            ["tools", "logs", "verifier", "human"],
+            "The wrapper matters",
+        ),
+        Slide(
+            "08_takeaway",
+            "takeaway",
+            "The better question",
+            "Stop asking if agents are smart.",
+            "Ask a better question: can this system fail safely when it is wrong?",
+            "safe_fail_loop",
+            ["try", "check", "limit damage"],
+            "Save this before the next demo",
+        ),
+    ]
+    return SlideDeck(
+        title=title,
+        slug=slug,
+        source=source or "Stanford AI Index 2026; Towards a Science of AI Agent Reliability; AI Agents That Matter",
+        platform=platform,
+        width=width,
+        height=height,
+        thesis="AI agents are improving fast, but real adoption depends on reliability, cost, and safe failure rather than benchmark hype.",
+        audience_action="Swipe away with a sharper test for agent claims: can it fail safely and consistently?",
+        slides=slides,
+    )
+
+
 def generic_slide_deck(
     title: str,
     idea: str,
@@ -271,6 +369,10 @@ def slide_brief_markdown(deck: SlideDeck, idea: str) -> str:
         "## Input",
         "",
         idea.strip(),
+        "",
+        "## Source",
+        "",
+        deck.source,
         "",
         "## Thesis",
         "",
@@ -403,6 +505,22 @@ def draw_slide_visual(draw: Any, box: tuple[int, int, int, int], slide: Slide, f
         draw_gradient_visual(draw, box, visual, fonts)
     elif visual == "node_chain":
         draw_pipeline_visual(draw, box, slide.bullets, fonts)
+    elif visual == "pass_fail_grid":
+        draw_pass_fail_grid(draw, box, fonts)
+    elif visual == "benchmark_bars":
+        draw_benchmark_bars(draw, box, fonts)
+    elif visual == "scorecard_crack":
+        draw_scorecard_crack(draw, box, fonts)
+    elif visual == "reliability_quadrants":
+        draw_reliability_quadrants(draw, box, slide.bullets, fonts)
+    elif visual == "cost_accuracy":
+        draw_cost_accuracy(draw, box, fonts)
+    elif visual == "guardrails":
+        draw_guardrails(draw, box, slide.bullets, fonts)
+    elif visual == "supervision_loop":
+        draw_supervision_loop(draw, box, slide.bullets, fonts)
+    elif visual == "safe_fail_loop":
+        draw_safe_fail_loop(draw, box, slide.bullets, fonts)
     else:
         draw_split_compare(draw, box, slide.bullets, fonts)
 
@@ -568,6 +686,109 @@ def draw_split_compare(draw: Any, box: tuple[int, int, int, int], labels: list[s
         draw_centered_text(draw, label, center(rect), fonts["small"], WHITE)
 
 
+def draw_pass_fail_grid(draw: Any, box: tuple[int, int, int, int], fonts: dict[str, Any]) -> None:
+    x1, y1, x2, y2 = box
+    card_w = int((x2 - x1 - 42) / 3)
+    y = y1 + int((y2 - y1) * 0.28)
+    labels = [("task 1", "pass", GREEN), ("task 2", "pass", GREEN), ("task 3", "fail", PINK)]
+    for index, (task, result, color) in enumerate(labels):
+        left = x1 + index * (card_w + 21)
+        rect = (left, y, left + card_w, y + int((y2 - y1) * 0.44))
+        draw.rounded_rectangle(rect, radius=26, fill=PANEL, outline=color, width=5)
+        draw_centered_text(draw, task, (center(rect)[0], rect[1] + 58), fonts["tiny"], MUTED)
+        draw_centered_text(draw, result, center(rect), fonts["small"], WHITE)
+    draw_label(draw, "real workflow", (x1 + 18, y2 - 58), fonts, YELLOW)
+
+
+def draw_benchmark_bars(draw: Any, box: tuple[int, int, int, int], fonts: dict[str, Any]) -> None:
+    x1, y1, x2, y2 = box
+    labels = [("old agents", 0.12, BLUE), ("new agents", 0.663, TEAL), ("human", 0.72, GREEN)]
+    bar_left = x1 + 230
+    bar_right = x2 - 28
+    for index, (label, amount, color) in enumerate(labels):
+        y = y1 + 80 + index * 118
+        draw.text((x1 + 24, y + 6), label, font=fonts["tiny"], fill=WHITE)
+        draw.rounded_rectangle((bar_left, y, bar_right, y + 42), radius=20, fill=PANEL)
+        draw.rounded_rectangle((bar_left, y, bar_left + int((bar_right - bar_left) * amount), y + 42), radius=20, fill=color)
+        draw.text((bar_left + int((bar_right - bar_left) * amount) + 12, y + 2), f"{amount * 100:.0f}%", font=fonts["tiny"], fill=MUTED)
+    draw_label(draw, "OSWorld", (x1 + 24, y1 + 18), fonts, YELLOW)
+
+
+def draw_scorecard_crack(draw: Any, box: tuple[int, int, int, int], fonts: dict[str, Any]) -> None:
+    x1, y1, x2, y2 = box
+    card = (x1 + 68, y1 + 42, x2 - 68, y2 - 42)
+    draw.rounded_rectangle(card, radius=30, fill=PANEL, outline=YELLOW, width=5)
+    draw_centered_text(draw, "66%", (center(card)[0], card[1] + 110), fonts["headline"], WHITE)
+    draw_centered_text(draw, "task success", (center(card)[0], card[1] + 205), fonts["small"], MUTED)
+    crack = [(center(card)[0] - 20, card[1] + 18), (center(card)[0] + 12, card[1] + 105), (center(card)[0] - 8, card[1] + 180), (center(card)[0] + 28, card[3] - 32)]
+    draw.line(crack, fill=PINK, width=5)
+    for idx, label in enumerate(["cost", "consistency", "severity"]):
+        draw_label(draw, label, (card[0] + 42 + idx * 185, card[3] - 86), fonts, [BLUE, TEAL, PINK][idx])
+
+
+def draw_reliability_quadrants(draw: Any, box: tuple[int, int, int, int], labels: list[str], fonts: dict[str, Any]) -> None:
+    x1, y1, x2, y2 = box
+    mid_x = (x1 + x2) // 2
+    mid_y = (y1 + y2) // 2
+    draw.line((mid_x, y1 + 30, mid_x, y2 - 30), fill=LINE, width=4)
+    draw.line((x1 + 30, mid_y, x2 - 30, mid_y), fill=LINE, width=4)
+    rects = [
+        (x1 + 30, y1 + 30, mid_x - 20, mid_y - 20),
+        (mid_x + 20, y1 + 30, x2 - 30, mid_y - 20),
+        (x1 + 30, mid_y + 20, mid_x - 20, y2 - 30),
+        (mid_x + 20, mid_y + 20, x2 - 30, y2 - 30),
+    ]
+    colors = [TEAL, BLUE, YELLOW, PINK]
+    for rect, label, color in zip(rects, labels[:4], colors):
+        draw.rounded_rectangle(rect, radius=24, fill=PANEL, outline=color, width=4)
+        draw_centered_text(draw, label, center(rect), fonts["tiny"], WHITE)
+
+
+def draw_cost_accuracy(draw: Any, box: tuple[int, int, int, int], fonts: dict[str, Any]) -> None:
+    x1, y1, x2, y2 = box
+    axis_y = y2 - 64
+    axis_x = x1 + 74
+    draw.line((axis_x, y1 + 44, axis_x, axis_y), fill=LINE, width=4)
+    draw.line((axis_x, axis_y, x2 - 44, axis_y), fill=LINE, width=4)
+    points = [(0.22, 0.38, "cheap", BLUE), (0.58, 0.62, "costly", YELLOW), (0.82, 0.72, "useful", GREEN)]
+    for px, py, label, color in points:
+        point = (axis_x + int((x2 - axis_x - 70) * px), axis_y - int((axis_y - y1 - 70) * py))
+        draw.ellipse((point[0] - 14, point[1] - 14, point[0] + 14, point[1] + 14), fill=color)
+        draw_label(draw, label, (point[0] + 16, point[1] - 22), fonts, color)
+    draw.text((axis_x + 6, y1 + 16), "accuracy", font=fonts["tiny"], fill=MUTED)
+    draw.text((x2 - 134, axis_y + 16), "cost", font=fonts["tiny"], fill=MUTED)
+
+
+def draw_guardrails(draw: Any, box: tuple[int, int, int, int], labels: list[str], fonts: dict[str, Any]) -> None:
+    x1, y1, x2, y2 = box
+    lane = (x1 + 68, (y1 + y2) // 2 - 42, x2 - 68, (y1 + y2) // 2 + 42)
+    draw.rounded_rectangle(lane, radius=28, fill=PANEL, outline=TEAL, width=4)
+    draw_arrow(draw, (lane[0] + 28, center(lane)[1]), (lane[2] - 28, center(lane)[1]), TEAL, width=6)
+    gate_xs = [lane[0] + 145, center(lane)[0], lane[2] - 145]
+    for label, gate_x, color in zip(labels[:3], gate_xs, [BLUE, YELLOW, GREEN]):
+        draw.line((gate_x, lane[1] - 92, gate_x, lane[3] + 92), fill=color, width=5)
+        draw_label(draw, label, (gate_x - 62, lane[1] - 138), fonts, color)
+
+
+def draw_supervision_loop(draw: Any, box: tuple[int, int, int, int], labels: list[str], fonts: dict[str, Any]) -> None:
+    x1, y1, x2, y2 = box
+    rects = row_rects(draw, labels[:4], fonts["tiny"], x1 + 20, x2 - 20, (y1 + y2) // 2, gap=18)
+    colors = [BLUE, TEAL, YELLOW, GREEN]
+    for index, rect in enumerate(rects):
+        draw_card(draw, rect, labels[index], fonts["tiny"], colors[index])
+        if index < len(rects) - 1:
+            draw_arrow(draw, (rect[2] + 8, center(rect)[1]), (rects[index + 1][0] - 8, center(rect)[1]), colors[index], width=4)
+    draw.arc((x1 + 150, y1 + 38, x2 - 150, y2 - 38), start=205, end=338, fill=MUTED, width=4)
+
+
+def draw_safe_fail_loop(draw: Any, box: tuple[int, int, int, int], labels: list[str], fonts: dict[str, Any]) -> None:
+    draw_loop_visual(draw, box, labels, fonts)
+    x1, y1, x2, y2 = box
+    shield = [(x2 - 162, y1 + 42), (x2 - 84, y1 + 70), (x2 - 104, y1 + 160), (x2 - 162, y1 + 198), (x2 - 220, y1 + 160), (x2 - 240, y1 + 70)]
+    draw.polygon(shield, outline=GREEN, fill=None)
+    draw.line((x2 - 198, y1 + 124, x2 - 170, y1 + 152, x2 - 122, y1 + 100), fill=GREEN, width=6)
+
+
 def evaluate_slide_deck(export_dir: Path) -> dict[str, Any]:
     manifest_path = export_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
@@ -656,8 +877,10 @@ def score_slide_hook(slide: Slide | None) -> float:
         return 0.0
     lower = f"{slide.headline} {slide.body}".lower()
     score = 65.0
-    if any(word in lower for word in ["not", "hidden", "same", "different", "stop", "trick"]):
+    if any(word in lower for word in ["not", "hidden", "same", "different", "stop", "trick", "fail", "hype", "hire"]):
         score += 25
+    if "?" in slide.headline:
+        score += 10
     if len(slide.headline.split()) <= 7:
         score += 10
     return min(100.0, score)

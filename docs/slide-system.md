@@ -24,6 +24,22 @@ The renderer supports:
 
 The current default is `tiktok` because it gives us the full phone canvas and works naturally for TikTok Photo Mode-style swipe posts. Instagram portrait output is available for feed carousels.
 
+## Hook Style
+
+The first slide should not sound like a textbook title. Use a pointed question or contrarian claim, then make the rest of the deck earn the click with accurate explanation.
+
+Good:
+
+```text
+Would you hire a 1-in-3 failure?
+```
+
+Weak:
+
+```text
+Understanding AI agent reliability
+```
+
 ## Pipeline
 
 ```text
@@ -59,6 +75,8 @@ make slides-llm
 make evaluate-slides-llm
 make slides-nexus
 make evaluate-slides-nexus
+make slides-agents
+make evaluate-slides-agents
 ```
 
 ## Output shape
@@ -98,6 +116,7 @@ A slide deck should pass these checks before posting:
 The first pass includes semantic recipes for:
 
 - large language models;
+- AI agent reliability and benchmark hype;
 - Nexus;
 - gradient descent;
 - generic concept explainers.
@@ -112,6 +131,12 @@ The Nexus recipe uses this structure:
 
 ```text
 same loss/different model -> loss as scoreboard -> downstream valleys -> task agreement -> inner loop -> route takeaway
+```
+
+The AI agent reliability recipe uses this structure:
+
+```text
+1-in-3 failure hook -> benchmark progress -> leaderboard trap -> reliability dimensions -> cost trap -> boxed tasks -> supervision wrapper -> safe-failure takeaway
 ```
 
 ## Sources

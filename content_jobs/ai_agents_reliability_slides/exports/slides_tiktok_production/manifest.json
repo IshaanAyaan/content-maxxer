@@ -1,0 +1,140 @@
+{
+  "title": "AI Agents Are Not Employees Yet",
+  "slug": "ai_agents_reliability_slides",
+  "source": "https://hai.stanford.edu/ai-index/2026-ai-index-report/technical-performance",
+  "platform": "tiktok",
+  "width": 1080,
+  "height": 1920,
+  "thesis": "AI agents are improving fast, but real adoption depends on reliability, cost, and safe failure rather than benchmark hype.",
+  "audience_action": "Swipe away with a sharper test for agent claims: can it fail safely and consistently?",
+  "slides": [
+    {
+      "slide_id": "01_hook",
+      "role": "hook",
+      "eyebrow": "AI agent hype check",
+      "headline": "Would you hire a 1-in-3 failure?",
+      "body": "Agents are getting scary good. But reliability is still the part everyone tries to skip.",
+      "visual": "pass_fail_grid",
+      "bullets": [
+        "pass",
+        "pass",
+        "fail"
+      ],
+      "footer": "Swipe before you buy the hype"
+    },
+    {
+      "slide_id": "02_progress",
+      "role": "context",
+      "eyebrow": "The progress is real",
+      "headline": "Agents jumped from 12% to 66%.",
+      "body": "OSWorld jumped from about 12% to 66.3%. Huge progress. Still about one failure in three.",
+      "visual": "benchmark_bars",
+      "bullets": [
+        "12%",
+        "66.3%",
+        "human"
+      ],
+      "footer": "Better is not reliable"
+    },
+    {
+      "slide_id": "03_benchmark_trap",
+      "role": "problem",
+      "eyebrow": "The benchmark trap",
+      "headline": "The leaderboard is lying by omission.",
+      "body": "One score hides cost, consistency, predictability, and how bad failure gets.",
+      "visual": "scorecard_crack",
+      "bullets": [
+        "score",
+        "cost",
+        "consistency",
+        "severity"
+      ],
+      "footer": "A score is not a product"
+    },
+    {
+      "slide_id": "04_reliability",
+      "role": "mechanism",
+      "eyebrow": "The missing test",
+      "headline": "Reliability is not accuracy.",
+      "body": "A useful agent should work across reruns, small changes, uncertainty, and bad outcomes.",
+      "visual": "reliability_quadrants",
+      "bullets": [
+        "consistency",
+        "robustness",
+        "predictability",
+        "safety"
+      ],
+      "footer": "This is the missing test"
+    },
+    {
+      "slide_id": "05_cost",
+      "role": "mechanism",
+      "eyebrow": "The cost trap",
+      "headline": "Spends $8 to save $2?",
+      "body": "Princeton's point: accuracy and cost belong on the same chart.",
+      "visual": "cost_accuracy",
+      "bullets": [
+        "accuracy",
+        "cost",
+        "useful"
+      ],
+      "footer": "Expensive magic is still expensive"
+    },
+    {
+      "slide_id": "06_where_it_works",
+      "role": "filter",
+      "eyebrow": "Where agents actually work",
+      "headline": "Useful agents are boxed in.",
+      "body": "Narrow, checkable, reversible tasks are where agent workflows start to make sense.",
+      "visual": "guardrails",
+      "bullets": [
+        "narrow",
+        "checkable",
+        "reversible"
+      ],
+      "footer": "Box the task first"
+    },
+    {
+      "slide_id": "07_build",
+      "role": "solution",
+      "eyebrow": "The useful wrapper",
+      "headline": "Do not buy autonomy. Build supervision.",
+      "body": "Useful agents need logs, verifiers, permissions, tools, and human review.",
+      "visual": "supervision_loop",
+      "bullets": [
+        "tools",
+        "logs",
+        "verifier",
+        "human"
+      ],
+      "footer": "The wrapper matters"
+    },
+    {
+      "slide_id": "08_takeaway",
+      "role": "takeaway",
+      "eyebrow": "The better question",
+      "headline": "Stop asking if agents are smart.",
+      "body": "Ask a better question: can this system fail safely when it is wrong?",
+      "visual": "safe_fail_loop",
+      "bullets": [
+        "try",
+        "check",
+        "limit damage"
+      ],
+      "footer": "Save this before the next demo"
+    }
+  ],
+  "quality": "production",
+  "output_dir": "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/ai_agents_reliability_slides/exports/slides_tiktok_production",
+  "slide_paths": [
+    "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/ai_agents_reliability_slides/exports/slides_tiktok_production/01_01_hook.png",
+    "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/ai_agents_reliability_slides/exports/slides_tiktok_production/02_02_progress.png",
+    "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/ai_agents_reliability_slides/exports/slides_tiktok_production/03_03_benchmark_trap.png",
+    "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/ai_agents_reliability_slides/exports/slides_tiktok_production/04_04_reliability.png",
+    "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/ai_agents_reliability_slides/exports/slides_tiktok_production/05_05_cost.png",
+    "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/ai_agents_reliability_slides/exports/slides_tiktok_production/06_06_where_it_works.png",
+    "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/ai_agents_reliability_slides/exports/slides_tiktok_production/07_07_build.png",
+    "/Users/ish/Documents/Codex/2026-07-06/amke/content-maxxer/content_jobs/ai_agents_reliability_slides/exports/slides_tiktok_production/08_08_takeaway.png"
+  ],
+  "renderer": "slide_carousel_v1"
+}

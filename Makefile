@@ -1,4 +1,4 @@
-.PHONY: setup doctor new render-nexus render package-nexus demo-video director-gradient director-nexus director-llm slides-llm slides-nexus evaluate-nexus evaluate-demo evaluate-director-gradient evaluate-director-nexus evaluate-director-llm evaluate-slides-llm evaluate-slides-nexus test
+.PHONY: setup doctor new render-nexus render package-nexus demo-video director-gradient director-nexus director-llm slides-llm slides-nexus slides-agents evaluate-nexus evaluate-demo evaluate-director-gradient evaluate-director-nexus evaluate-director-llm evaluate-slides-llm evaluate-slides-nexus evaluate-slides-agents test
 
 setup:
 	python3 -m venv .venv
@@ -37,6 +37,9 @@ slides-llm:
 slides-nexus:
 	. .venv/bin/activate && content-maxxer slides --slug nexus_slides --title "Nexus" --idea "Nexus shows why two models can have the same pretraining loss but land in different optimization basins, and why downstream tasks care about the route through the landscape rather than only the score." --source-url "https://arxiv.org/pdf/2604.09258" --platform tiktok --quality production --force
 
+slides-agents:
+	. .venv/bin/activate && content-maxxer slides --slug ai_agents_reliability_slides --title "AI Agents Are Not Employees Yet" --idea "Explain why AI agents are overhyped: benchmark scores are improving, but real-world reliability still depends on consistency, robustness, cost, predictable failure, and human supervision." --source-url "https://hai.stanford.edu/ai-index/2026-ai-index-report/technical-performance" --platform tiktok --quality production --force
+
 evaluate-nexus:
 	. .venv/bin/activate && content-maxxer evaluate nexus_explainer_h --format vertical --quality draft
 
@@ -57,6 +60,9 @@ evaluate-slides-llm:
 
 evaluate-slides-nexus:
 	. .venv/bin/activate && content-maxxer evaluate-slides nexus_slides --platform tiktok --quality production
+
+evaluate-slides-agents:
+	. .venv/bin/activate && content-maxxer evaluate-slides ai_agents_reliability_slides --platform tiktok --quality production
 
 test:
 	. .venv/bin/activate && python -m unittest discover -s tests
