@@ -1,40 +1,32 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "content-maxxer"
-version = "0.1.0"
-description = "Prompt-to-shortform video workflow for Manim explainers."
+name = "contentmaxxer"
+version = "0.4.0"
+description = "Source-grounded, Manim-first social content production"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 dependencies = [
-  "imageio>=2.34.0",
-  "imageio-ffmpeg>=0.5.1",
-  "numpy>=1.26.0",
-  "pillow>=10.0.0"
+  "Pillow>=10.0",
+  "imageio-ffmpeg>=0.5",
 ]
 
 [project.optional-dependencies]
-manim = [
-  "manim>=0.19.0",
-  "matplotlib>=3.8.0",
-  "scipy>=1.11.0"
+animation = [
+  "manim>=0.19,<0.20",
+  "importlib-metadata>=6,<9; python_version<'3.10'",
 ]
-research = [
-  "arxiv>=2.1.3",
-  "pymupdf>=1.24.0",
-  "pypdf>=4.0.0",
-  "python-dotenv>=1.0.0",
-  "requests>=2.31.0"
+local-voice = [
+  "chatterbox-tts>=0.1.2; python_version>='3.10'",
 ]
-audio = [
-  "moviepy>=1.0.3",
-  "pydub>=0.25.1"
+qwen3-mlx = [
+  "mlx-audio>=0.4.6; sys_platform=='darwin' and platform_machine=='arm64' and python_version>='3.10'",
 ]
 
 [project.scripts]
-content-maxxer = "content_maxxer.cli:main"
+contentmaxxer = "contentmaxxer.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,163 +1,139 @@
-# Content Maxxer
+# contentmaxxer
 
-Content Maxxer is a public repo for turning high-context prompts into shortform explainer videos, starting with research and technical explainers.
+`contentmaxxer` is a source-grounded, Manim-first production CLI for technical reels and carousels. It caches every URL or local note inside the job, turns evidence into typed claims, requires factual scenes and slides to cite those claims, and runs hard QA gates before declaring an artifact complete.
 
-The first seed example is `nexus_explainer_h`: a 56 second 1920x1080 Manim-style visual explainer. It has no audio track yet, which makes it a clean reference for the visual workflow before adding narration, captions, shorts crops, and slide content later.
+Educational reels use narration-led timing, four-word kinetic captions, hand-drawn multi-sketch explanations, actual rendered-frame contact sheets, and encoded-audio checks for loudness, peak, dead air, alignment, and A/V drift. See the [educational reel playbook](docs/EDUCATIONAL_REELS.md), [open-source voice notes](docs/OPEN_SOURCE_TTS.md), and [director prompt](prompts/educational-reel-system.md).
 
-## What this method is
+Carousels use an engagement-first editorial system: three scored angles, at least 12 hooks, a cover-to-payoff swipe narrative, original full-bleed art, three rendered cover tests, and hard gates for hook brevity, one idea per slide, visual variety, and save/share/comment payoff. See the [carousel engagement playbook](docs/CAROUSEL_ENGAGEMENT_PLAYBOOK.md) and [agent system prompt](prompts/carousel-system.md).
 
-The current method is not just "make an animation." It is a repeatable content job:
+Manim is the polished director. `--renderer auto` prefers it and clearly records a `raster_fallback` when Manim is unavailable. The fallback is useful for smoke tests; it is never mislabeled as polished Manim output. The manual `render` command remains available for bespoke scenes. Remotion is intentionally not part of this runtime.
 
-1. Start with a dense source, usually a paper, doc, or technical topic.
-2. Write one strong prompt that defines the audience, quality bar, duration, animation style, concepts to explain, and requirement to render/check scene modules.
-3. Break the idea into teachable visual beats: hook, mental model, core mechanism, engineering detail, takeaway.
-4. Build each beat as a Manim scene or scene section.
-5. Render, review for awkward frames or overlaps, then stitch into the final shortform asset.
-
-The goal is to make "contentmaxxing" systematic: one source in, one polished video out, with the prompt, source notes, storyboard, scene code, render artifacts, and final output all saved together.
-
-For the current research pass on AI-native shorts workflows, see [docs/ai-shorts-research.md](docs/ai-shorts-research.md).
-
-For the quality reset after studying human-made visual explainers, see [docs/human-explainer-study.md](docs/human-explainer-study.md), [docs/director-system.md](docs/director-system.md), and [docs/director-test-report.md](docs/director-test-report.md).
-
-For the new static carousel lane, see [docs/slide-system.md](docs/slide-system.md) and [docs/slide-test-report.md](docs/slide-test-report.md).
-
-## Quick start
-
-Install the backend video dependencies first:
+## Install and verify
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-content-maxxer doctor
+python -m venv .venv
+.venv/bin/python -m pip install -e '.[animation]'
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
-Manim rendering is still available as an optional path. For Manim scenes, install the system render dependencies and optional extra:
+Manim integration tests are opt-in with `CONTENTMAXXER_MANIM_INTEGRATION=1`. Cairo and Pango must also be available on the host (for example, `brew install pkg-config cairo pango` on macOS).
+
+For the local Apple-Silicon voice path, use a separate Python 3.12 environment so the Manim environment can keep its own dependency set:
 
 ```bash
-brew install ffmpeg cairo pango pkg-config
-pip install -e ".[manim]"
+python3.12 -m venv .venv-tts
+.venv-tts/bin/python -m pip install 'mlx-audio==0.4.6'
 ```
 
-Create a new content job:
+## Grounded workflow
 
 ```bash
-content-maxxer new my_explainer --title "My Explainer" --source-url "https://example.com/source.pdf"
+contentmaxxer research "A sourced topic" \
+  --job sourced_topic \
+  --source-url https://example.com/reference \
+  --source-file notes.md
+
+contentmaxxer director "A sourced topic" \
+  --job sourced_topic \
+  --offline \
+  --renderer auto \
+  --hook-style question
+
+# Local macOS narration with measured timing and word captions.
+contentmaxxer director "A sourced topic" \
+  --job sourced_topic \
+  --offline \
+  --renderer manim \
+  --voice-provider say \
+  --voice Samantha \
+  --voice-rate 170
+
+# Premium timestamped narration (uses ELEVENLABS_API_KEY).
+contentmaxxer director "A sourced topic" \
+  --job sourced_topic \
+  --offline \
+  --renderer manim \
+  --voice-provider elevenlabs \
+  --voice YOUR_ELEVENLABS_VOICE_ID
+
+# Open-source, local Apple-Silicon narration with Qwen3-TTS through MLX-Audio.
+# The first run downloads the selected model; later runs use the local cache.
+contentmaxxer director "A sourced topic" \
+  --job sourced_topic \
+  --offline \
+  --renderer manim \
+  --voice-provider qwen3 \
+  --voice Aiden \
+  --voice-rate 165 \
+  --voice-instruction "Warm, curious, conversational educational narrator. Speak only the supplied text once."
+
+# Open-source local narration. Chatterbox is tested upstream on Python 3.11;
+# use `pip install -e '.[animation,local-voice]'` in that environment.
+contentmaxxer director "A sourced topic" \
+  --job sourced_topic \
+  --offline \
+  --renderer manim \
+  --voice-provider chatterbox \
+  --voice-reference clean-voice-reference.wav
+
+# Or import a finished narration track.
+contentmaxxer director "A sourced topic" \
+  --job sourced_topic \
+  --offline \
+  --renderer manim \
+  --voice-provider file \
+  --narration-file narration.wav
+
+contentmaxxer slides "A sourced topic" \
+  --job sourced_topic \
+  --offline \
+  --count 7 \
+  --target 9:16 \
+  --target 4:5
+
+# Alternate code-native collage system; no AI-generated hero image.
+contentmaxxer slides "A sourced topic" --offline --style paper-meme
 ```
 
-Render a job:
+Supported hook styles are `direct`, `question`, `contrarian`, `statistic`, `curiosity`, `story`, and `list`. A statistic hook is rejected unless at least one cited claim is numeric.
+
+Without sufficient sources, `director` and `slides` write a blocked, ungrounded plan and stop before rendering. `--allow-ungrounded` is an explicit escape hatch for visibly speculative placeholders; such work fails the grounding QA gate by design.
+
+`--voice-provider auto` prefers configured ElevenLabs, then the external Qwen3/MLX environment, then Chatterbox, then macOS speech. Qwen3 beat duration is measured from its actual WAV output, but its word timings are proportional estimates. Use an independent ASR or listening pass before publishing.
+
+## Target profiles
+
+Carousels are re-laid out for each profile rather than resized. Supported grouped targets are `9:16`, Instagram-native `3:4`, and `4:5`; platform-specific profiles include `tiktok`, `stories`, `reels`, `instagram`, and `linkedin`.
+
+## GPT-5.6 set
 
 ```bash
-content-maxxer render my_explainer --quality draft
-content-maxxer render my_explainer --quality high
+contentmaxxer gpt56-set --output-dir jobs --renderer auto --count 7
 ```
 
-Render the seed Nexus job:
+This builds `gpt_5_6_family_tiers` and `gpt_5_6_capability_controls`, each with a reel and 9:16 plus 4:5 carousel variants. Their sources are locked to July 9, 2026 and point to the general-availability launch, current model docs, and GPT-5.6 System Card. If a source is unreachable, the command records that it used the packaged locked snapshot instead of pretending a network retrieval succeeded.
+
+## Five-post creative test
 
 ```bash
-content-maxxer render nexus_explainer_h --quality draft
+contentmaxxer five-post-set --output-dir jobs --count 7
 ```
 
-Generate a caption-led video directly from an idea:
+This builds the paper/meme clone, Fable 5 versus GPT-5.6 in both visual systems, and the model-economics angle in both systems. Every post exports 9:16, 3:4, and 4:5, with three cover tests per ratio. `paper_meme_v1` is entirely code-native: graph paper, marker typography, tape, receipts, doodles, and comparison cards, with no generated hero art.
 
-```bash
-content-maxxer make-video \
-  --title "Gradient Descent" \
-  --idea "Gradient descent improves a model by taking small downhill steps." \
-  --format vertical \
-  --duration 22 \
-  --quality draft
-```
+## Job contract
 
-That command is the old baseline renderer. It proves the backend can write an MP4 and subtitles, but it is not the target quality bar.
+Each completed job includes:
 
-Generate a semantic director video:
+- source snapshots, normalized text, retrieval metadata, and SHA-256 digests;
+- `claims.json`, content plans, and `citations.md`;
+- a typed Manim spec and deterministic `scene.py`;
+- reel MP4, burned caption rail, SRT, contact sheet, and scene-level citations;
+- exact-count carousel PNGs and contact sheets per adapted target;
+- portable `manifest.json` paths;
+- initial and revised plans plus QA reports;
+- `final-file-locations.md`.
 
-```bash
-content-maxxer director \
-  --slug gradient_descent_director \
-  --title "Gradient Descent" \
-  --idea "Gradient descent is how a model improves by reading the slope of the loss curve, taking a controlled downhill step, and repeating until it settles near a minimum." \
-  --format vertical \
-  --duration 32 \
-  --speed 1.75 \
-  --quality production \
-  --force
-```
+QA is gate-based, not score-based: schema, grounding and citation coverage, dimensions, duration, caption rate, safe bounds, text size, truncation, overlap, density, blank or duplicate media, missing files, and manifest integrity must all pass after the single deterministic revision.
 
-The director path writes a visual thesis, scene graph, storyboard, subtitles, MP4, render manifest, and contact sheet. It is the current serious backend path because scenes are driven by a central visual object and semantic motion instead of generic beat templates. `--speed 1.75` keeps the pacing closer to shortform human explainers.
-
-Generate the current LLM explainer sample:
-
-```bash
-make director-llm
-make evaluate-director-llm
-```
-
-Generate a slide carousel instead of a video:
-
-```bash
-content-maxxer slides \
-  --slug large_language_models_slides \
-  --title "How Large Language Models Work" \
-  --idea "Explain how large language models work: text becomes tokens, tokens become vectors, attention mixes context, transformer layers refine meaning, the model predicts the next token, and repeating that loop creates an answer." \
-  --platform tiktok \
-  --quality production \
-  --force
-```
-
-The slide lane exports numbered PNGs, a contact sheet, a manifest, a storyboard, and a slide-specific evaluation report. It is meant for TikTok Photo Mode, Instagram-style carousel posts, and swipe-through explainers.
-
-Generate the current higher-engagement AI agent post candidate:
-
-```bash
-make slides-agents
-make evaluate-slides-agents
-```
-
-Package an existing job into a captioned MP4:
-
-```bash
-content-maxxer package nexus_explainer_h --format vertical --duration 25 --quality draft
-```
-
-Evaluate a generated export:
-
-```bash
-content-maxxer evaluate nexus_explainer_h --format vertical --quality draft
-content-maxxer evaluate gradient_descent_director --format vertical --quality production --director
-content-maxxer evaluate large_language_models_director --format vertical --quality production --director
-content-maxxer evaluate-slides large_language_models_slides --platform tiktok --quality production
-content-maxxer evaluate-slides ai_agents_reliability_slides --platform tiktok --quality production
-```
-
-## Repo layout
-
-```text
-content_jobs/
-  _template/                 Reusable content job starter files.
-  nexus_explainer_h/         Seed example based on the existing Nexus render.
-    prompt.md                The high-context prompt pattern.
-    scene.py                 Manim scene scaffold matching the reference style.
-    reference/               Existing MP4 and generated contact sheet.
-docs/
-  workflow.md                Concise upgrade plan for the contentmaxx workflow.
-  ai-shorts-research.md      Research memo on tools, methods, and channel workflow.
-  backend-workflow.md        Small backend path for idea-to-captioned-video.
-  human-explainer-study.md   What good human visual explainers do differently.
-  director-system.md         Target AI director loop for Manim-style explainers.
-  director-test-report.md    Results from semantic director sample videos.
-  slide-system.md            Static carousel workflow for swipe-through explainers.
-  slide-test-report.md       Results from generated carousel decks.
-  test-report.md             Results from generated backend test videos.
-src/content_maxxer/
-  cli.py                     Commands for creating and rendering jobs.
-  backend.py                 Caption-led video renderer and evaluator.
-  director.py                Semantic director planner and renderer.
-  slides.py                  Social carousel planner, renderer, and evaluator.
-```
-
-## Next lanes
-
-Video comes first. Slides should become a parallel content lane later, using the same intake, research, outline, and review structure, but with slide deck templates instead of Manim scenes.
+Carousel QA additionally requires 12 hook options, three angle options, three rendered cover candidates per target, concise cover/body copy, one idea per slide, a cover-to-payoff role progression, visual variety, a visible swipe cue, the selected visual theme, and a final engagement payoff.

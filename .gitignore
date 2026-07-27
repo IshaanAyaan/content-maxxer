@@ -1,21 +1,12 @@
-.DS_Store
-.venv/
 __pycache__/
 *.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+.venv/
+.venv-tts/
+.coverage
 build/
+jobs/
+output/
+tmp/
 dist/
 *.egg-info/
-
-# Manim render outputs can get large. Keep final references in job/reference.
-content_jobs/**/media/
-content_jobs/**/renders/
-content_jobs/**/tmp/
-
-# Local secrets and scratch files.
-.env
-*.log
-work/
-outputs/
+.DS_Store
