@@ -10,6 +10,8 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from PIL import Image
 
 from .audio import (
+    DEFAULT_WORD_ALIGNER_MODEL,
+    burn_captions_into_reel,
     mux_narration,
     retime_plan,
     synthesize_narration,
@@ -27,14 +29,22 @@ from .manim_scene import (
     compile_manim_scene,
     manim_available,
     render_manim,
+    semantic_emphasis_summary,
+    semantic_text_transition_summary,
     write_manim_spec,
     write_scene_py,
 )
 from .models import BuildResult, Claim, ContentPlan, NarrationTrack, QAReport, SourceArtifact
+from .motion import (
+    ROUTE_RECAP_WINDOW_SECONDS,
+    analyze_visual_motion,
+    motion_threshold_for_style,
+)
 from .planning import extract_claims, plan_slides, plan_video, write_citations, write_claim_map
 from .qa import qa_carousel, qa_video, revise_plan, write_revision_artifacts
 from .raster import (
     make_contact_sheet,
+    make_labeled_contact_sheet,
     render_carousel,
     render_raster_video,
     write_srt,
@@ -48,6 +58,55 @@ class GroundingBlocked(RuntimeError):
 
 class QAFailure(RuntimeError):
     pass
+
+
+def _displayed_headline(
+    spec: object,
+    first_headline: str,
+    sampled_headline: str,
+) -> str:
+    story = getattr(spec, "story", {})
+    if not isinstance(story, dict):
+        return sampled_headline
+    if (
+        story.get("text_transition_mode")
+        != "persistent_lesson_header_handwritten_captions"
+    ):
+        return sampled_headline
+    hook_title = story.get("hook_title")
+    if isinstance(hook_title, dict):
+        complete_title = str(hook_title.get("text", "")).strip()
+        if complete_title:
+            return complete_title
+    return first_headline
+
+
+def _route_recap_window_seconds(spec: object) -> float:
+    window_seconds = ROUTE_RECAP_WINDOW_SECONDS
+    story = getattr(spec, "story", {})
+    primitives = getattr(spec, "primitives", ())
+    if (
+        not isinstance(story, dict)
+        or str(story.get("recap_mode", "")) != "full_route_sweep"
+        or not primitives
+    ):
+        return window_seconds
+    final_primitive = primitives[-1]
+    final_captions = final_primitive.params.get("captions", [])
+    if not isinstance(final_captions, list) or not final_captions:
+        return window_seconds
+    final_caption = final_captions[-1]
+    if not isinstance(final_caption, dict):
+        return window_seconds
+    return max(
+        ROUTE_RECAP_WINDOW_SECONDS,
+        min(
+            4.0,
+            float(final_primitive.duration_seconds)
+            - float(final_caption.get("start_seconds", 0.0))
+            + 0.1,
+        ),
+    )
 
 
 def job_path(output_dir: Path, job: Optional[str], topic: str) -> Path:
@@ -172,10 +231,12 @@ def _video_section(
     fallback_reason: Optional[str],
     metadata: Dict[str, object],
     narration: Optional[NarrationTrack],
+    animation_style: str,
 ) -> Dict[str, object]:
     section = {
         "renderer": "manim" if selected_renderer == "manim" else "raster_fallback",
         "polished_manim": selected_renderer == "manim",
+        "animation_style": animation_style,
         "fallback_reason": fallback_reason,
         "plan": "plans/video.json",
         "storyboard": {"path": "video/storyboard.md"},
@@ -185,6 +246,11 @@ def _video_section(
         "mp4": "video/reel.mp4",
         "srt": "video/captions.srt",
         "contact_sheet": "video/contact-sheet.png",
+        "motion_contact_sheet": (
+            "video/motion-contact-sheet.png"
+            if selected_renderer == "manim"
+            else None
+        ),
         "render_metadata": "video/raster/metadata.json" if selected_renderer == "raster" else "video/manim/render-metadata.json",
         "duration_seconds": narration.duration_seconds if narration else sum(beat.duration_seconds for beat in plan.beats),
         "dimensions": [1080, 1920],
@@ -207,6 +273,7 @@ def _video_section(
             "timings": "video/narration/timings.json",
             "alignment_method": narration.alignment_method,
             "duration_seconds": narration.duration_seconds,
+            "metadata": narration.metadata,
         }
         if narration
         else {"enabled": False}
@@ -217,21 +284,8 @@ def _video_section(
 def _render_manim_with_packaging(job_dir: Path, plan: ContentPlan, spec: object, scene_path: Path) -> Dict[str, object]:
     output_path = job_dir / "video" / "reel.mp4"
     _, command = render_manim(scene_path, output_path)
-    frames_dir = job_dir / "video" / "manim" / "preview-frames"
-    frames_dir.mkdir(parents=True, exist_ok=True)
-    sample_count = max(4, min(8, len(plan.beats) * 2))
-    frames = []
-    frame_metadata = []
-    for index in range(sample_count):
-        timestamp = max(0.05, spec.duration_seconds * (index + 0.5) / sample_count)
-        cursor = 0.0
-        sampled_beat = plan.beats[-1]
-        for beat in plan.beats:
-            cursor += beat.duration_seconds
-            if timestamp <= cursor:
-                sampled_beat = beat
-                break
-        frame = frames_dir / f"{index + 1:03d}.png"
+
+    def extract_frame(frame_path: Path, timestamp: float) -> Tuple[int, int]:
         completed = subprocess.run(
             [
                 get_ffmpeg_exe(),
@@ -244,17 +298,67 @@ def _render_manim_with_packaging(job_dir: Path, plan: ContentPlan, spec: object,
                 "1",
                 "-update",
                 "1",
-                str(frame),
+                str(frame_path),
             ],
             capture_output=True,
             text=True,
         )
-        if completed.returncode != 0 or not frame.is_file():
+        if completed.returncode != 0 or not frame_path.is_file():
             detail = (completed.stderr or completed.stdout)[-1800:]
-            raise RuntimeError(f"Manim preview extraction failed at {timestamp:.2f}s: {detail}")
-        with Image.open(frame) as image:
-            width, height = image.size
+            raise RuntimeError(
+                f"Manim preview extraction failed at {timestamp:.2f}s: {detail}"
+            )
+        with Image.open(frame_path) as image:
+            return image.size
+
+    frames_dir = job_dir / "video" / "manim" / "preview-frames"
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    sample_count = max(4, min(8, len(plan.beats) * 2))
+    candidate_timestamps = []
+    beat_spans: List[Tuple[str, float, float]] = []
+    beat_cursor = 0.0
+    for beat in plan.beats:
+        beat_end = beat_cursor + beat.duration_seconds
+        beat_spans.append((beat.id, beat_cursor, beat_end))
+        candidate_timestamps.extend(
+            [
+                beat_cursor + beat.duration_seconds * 0.35,
+                beat_cursor + beat.duration_seconds * 0.72,
+            ]
+        )
+        beat_cursor = beat_end
+    if len(candidate_timestamps) < sample_count:
+        candidate_timestamps.extend(
+            spec.duration_seconds * (index + 0.5) / sample_count
+            for index in range(sample_count - len(candidate_timestamps))
+        )
+    if len(candidate_timestamps) > sample_count:
+        selected_indices = [
+            round(index * (len(candidate_timestamps) - 1) / (sample_count - 1))
+            for index in range(sample_count)
+        ]
+        sample_timestamps = [candidate_timestamps[index] for index in selected_indices]
+    else:
+        sample_timestamps = candidate_timestamps
+    frames = []
+    frame_metadata = []
+    for index, raw_timestamp in enumerate(sample_timestamps):
+        timestamp = max(0.05, min(spec.duration_seconds - 0.05, raw_timestamp))
+        cursor = 0.0
+        sampled_beat = plan.beats[-1]
+        for beat in plan.beats:
+            cursor += beat.duration_seconds
+            if timestamp <= cursor:
+                sampled_beat = beat
+                break
+        frame = frames_dir / f"{index + 1:03d}.png"
+        width, height = extract_frame(frame, timestamp)
         frames.append(frame)
+        displayed_headline = _displayed_headline(
+            spec,
+            plan.beats[0].headline,
+            sampled_beat.headline,
+        )
         frame_metadata.append(
             {
                 "id": f"sample_{index + 1:02d}",
@@ -267,10 +371,10 @@ def _render_manim_with_packaging(job_dir: Path, plan: ContentPlan, spec: object,
                         "box": [90, 190, width - 90, 410],
                         "font_size": 43,
                         "truncated": False,
-                        "text": sampled_beat.headline,
+                        "text": displayed_headline,
                     },
                     {
-                        "box": [108, 420, 516, 470],
+                        "box": [108, 420, width - 108, 470],
                         "font_size": 18,
                         "truncated": False,
                         "text": sampled_beat.source_label,
@@ -287,6 +391,81 @@ def _render_manim_with_packaging(job_dir: Path, plan: ContentPlan, spec: object,
         )
     srt = write_srt(plan, job_dir / "video" / "captions.srt")
     contact = make_contact_sheet(frames, job_dir / "video" / "contact-sheet.png")
+    recap_window_seconds = _route_recap_window_seconds(spec)
+    motion = analyze_visual_motion(
+        output_path,
+        spec.width,
+        spec.height,
+        threshold=motion_threshold_for_style(spec.animation_style),
+        witness_segments=beat_spans,
+        analyze_continuity=(
+            str(spec.story.get("kind", "")).startswith("mechanism_")
+            or str(spec.story.get("kind", ""))
+            in {
+                "technology_adolescence",
+                "open_weights_debate",
+                "causal_explainer",
+            }
+        ),
+        analyze_recap=(
+            str(spec.story.get("recap_mode", "")) == "full_route_sweep"
+        ),
+        analyze_feedback=(
+            str(spec.story.get("topology_mode", ""))
+            in {"feedback_loop", "cycle_loop"}
+        ),
+        recap_window_seconds=recap_window_seconds,
+    )
+    witness_dir = job_dir / "video" / "manim" / "motion-witness-frames"
+    witness_dir.mkdir(parents=True, exist_ok=True)
+    witness_frames: List[Path] = []
+    witness_metadata: List[Dict[str, object]] = []
+    witness_labels: List[str] = []
+    for index, witness in enumerate(motion.get("witnesses", []), start=1):
+        timestamp = float(witness["timestamp_seconds"])
+        frame = witness_dir / f"{index:03d}.png"
+        width, height = extract_frame(frame, timestamp)
+        witness_frames.append(frame)
+        witness_metadata.append(
+            {
+                **witness,
+                "path": frame.name,
+                "width": width,
+                "height": height,
+            }
+        )
+        reason = {
+            "strongest_motion": "strong",
+            "subtle_motion": "subtle",
+            "distributed_peak": "peak",
+            "coverage_fill": "fill",
+            "longest_static_midpoint": "static",
+        }.get(str(witness.get("selection_reason")), "motion")
+        witness_labels.append(
+            (
+                f"{witness['segment_id']} | {timestamp:.2f}s | {reason} | "
+                f"d {float(witness['signal']):.3f}"
+            )
+        )
+    motion["witnesses"] = witness_metadata
+    motion_contact = make_labeled_contact_sheet(
+        witness_frames,
+        witness_labels,
+        job_dir / "video" / "motion-contact-sheet.png",
+    )
+    semantic_text_transitions = semantic_text_transition_summary(spec)
+    semantic_continuity = motion.get("semantic_continuity")
+    if (
+        semantic_text_transitions
+        and isinstance(semantic_continuity, dict)
+        and isinstance(
+            semantic_continuity.get("header_persistence"),
+            dict,
+        )
+    ):
+        semantic_text_transitions["encoded_header_persistence"] = (
+            semantic_continuity["header_persistence"]
+        )
     payload = {
         "renderer": "manim",
         "width": spec.width,
@@ -295,11 +474,16 @@ def _render_manim_with_packaging(job_dir: Path, plan: ContentPlan, spec: object,
         "duration_seconds": spec.duration_seconds,
         "frame_root": portable(frames_dir, job_dir),
         "frames": frame_metadata,
+        "motion_witness_root": portable(witness_dir, job_dir),
+        "motion": motion,
+        "semantic_emphasis": semantic_emphasis_summary(spec),
+        "semantic_text_transitions": semantic_text_transitions,
         "command": command,
         "outputs": {
             "mp4": portable(output_path, job_dir),
             "srt": portable(srt, job_dir),
             "contact_sheet": portable(contact, job_dir),
+            "motion_contact_sheet": portable(motion_contact, job_dir),
         },
     }
     write_json(job_dir / "video" / "manim" / "render-metadata.json", payload)
@@ -311,6 +495,7 @@ def _package_narration(
     selected_renderer: str,
     metadata: Dict[str, object],
     narration: Optional[NarrationTrack],
+    burn_captions: bool = False,
 ) -> Dict[str, object]:
     if narration is None:
         return metadata
@@ -320,6 +505,17 @@ def _package_narration(
     audio_metadata["cue_count"] = len(narration.cues)
     audio_metadata["script_word_count"] = sum(len(cue.text.split()) for cue in narration.cues)
     audio_metadata["aligned_word_count"] = sum(len(cue.words) for cue in narration.cues)
+    if burn_captions:
+        burned = burn_captions_into_reel(
+            job_dir,
+            job_dir / "video" / "reel.mp4",
+            narration,
+            width=int(metadata.get("width", 1080)),
+            height=int(metadata.get("height", 1920)),
+        )
+        audio_metadata["burned_captions"] = burned
+        metadata["outputs"]["captioned_mp4"] = burned["captioned_mp4"]
+        metadata["outputs"]["captions_ass"] = burned["ass"]
     metadata["audio"] = audio_metadata
     metadata["duration_seconds"] = narration.duration_seconds
     metadata["outputs"]["narration"] = portable(job_dir / narration.audio_path, job_dir)
@@ -339,8 +535,10 @@ def _render_video(
     plan: ContentPlan,
     selected_renderer: str,
     narration: Optional[NarrationTrack] = None,
+    animation_style: str = "hand_drawn",
+    burn_captions: bool = False,
 ) -> Tuple[object, Dict[str, object]]:
-    spec = compile_manim_scene(plan, narration=narration)
+    spec = compile_manim_scene(plan, narration=narration, animation_style=animation_style)
     write_manim_spec(job_dir, spec)
     scene_path = write_scene_py(job_dir, spec)
     _write_storyboard(job_dir, plan)
@@ -348,7 +546,7 @@ def _render_video(
         metadata = _render_manim_with_packaging(job_dir, plan, spec, scene_path)
     else:
         metadata = render_raster_video(plan, spec, job_dir)
-    metadata = _package_narration(job_dir, selected_renderer, metadata, narration)
+    metadata = _package_narration(job_dir, selected_renderer, metadata, narration, burn_captions)
     return spec, metadata
 
 
@@ -412,16 +610,23 @@ def run_director(
     offline: bool = False,
     hook_style: str = "direct",
     renderer: str = "auto",
+    animation_style: str = "hand_drawn",
     allow_ungrounded: bool = False,
     snapshot_date: Optional[str] = None,
     voice_provider: str = "auto",
     voice: str = "",
     voice_rate: int = 170,
+    voice_pronunciations: Sequence[str] = (),
     voice_instruction: str = "",
     qwen3_python: Optional[Path] = None,
     qwen3_model: str = "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-4bit",
     voice_reference: Optional[Path] = None,
     narration_file: Optional[Path] = None,
+    narration_timings: Optional[Path] = None,
+    word_aligner: str = "auto",
+    word_aligner_python: Optional[Path] = None,
+    word_aligner_model: str = DEFAULT_WORD_ALIGNER_MODEL,
+    burn_captions: bool = False,
 ) -> BuildResult:
     job_dir = job_path(output_dir, job, topic)
     sources, claims = research_job(topic, job_dir, source_urls, source_files, offline, snapshot_date)
@@ -435,11 +640,16 @@ def run_director(
         provider=voice_provider,
         voice=voice,
         rate_wpm=voice_rate,
+        voice_pronunciations=voice_pronunciations,
         voice_instruction=voice_instruction,
         qwen3_python=qwen3_python,
         qwen3_model=qwen3_model,
         voice_reference=voice_reference,
         narration_file=narration_file,
+        narration_timings=narration_timings,
+        word_aligner=word_aligner,
+        word_aligner_python=word_aligner_python,
+        word_aligner_model=word_aligner_model,
     )
     initial_plan = retime_plan(initial_plan, initial_narration)
 
@@ -447,7 +657,7 @@ def run_director(
         raise ValueError(f"unknown renderer: {renderer}")
     available = manim_available()
     if renderer == "manim" and not available:
-        spec = compile_manim_scene(initial_plan)
+        spec = compile_manim_scene(initial_plan, animation_style=animation_style)
         write_manim_spec(job_dir, spec)
         write_scene_py(job_dir, spec)
         raise RuntimeError("Manim was explicitly requested but is unavailable. The scene and spec were generated; install Manim to render them.")
@@ -460,12 +670,26 @@ def run_director(
     plan_path = job_dir / "plans" / "video.json"
     write_json(plan_path, initial_plan)
     try:
-        initial_spec, initial_metadata = _render_video(job_dir, initial_plan, selected, initial_narration)
+        initial_spec, initial_metadata = _render_video(
+            job_dir,
+            initial_plan,
+            selected,
+            initial_narration,
+            animation_style,
+            burn_captions,
+        )
     except RuntimeError as exc:
         if renderer == "auto" and selected == "manim":
             selected = "raster"
             fallback_reason = f"Manim render failed; auto used raster fallback: {exc}"
-            initial_spec, initial_metadata = _render_video(job_dir, initial_plan, selected, initial_narration)
+            initial_spec, initial_metadata = _render_video(
+                job_dir,
+                initial_plan,
+                selected,
+                initial_narration,
+                animation_style,
+                burn_captions,
+            )
         else:
             raise
     manifest_path = _write_manifest(
@@ -474,7 +698,18 @@ def run_director(
         sources,
         claims,
         grounded=initial_plan.grounded,
-        section=("video", _video_section(job_dir, initial_plan, selected, fallback_reason, initial_metadata, initial_narration)),
+        section=(
+            "video",
+            _video_section(
+                job_dir,
+                initial_plan,
+                selected,
+                fallback_reason,
+                initial_metadata,
+                initial_narration,
+                animation_style,
+            ),
+        ),
     )
     initial_report = qa_video(job_dir, initial_plan, initial_spec, initial_metadata, manifest_path, "initial")
     write_revision_artifacts(job_dir, "video", initial_plan, initial_report, "initial")
@@ -488,25 +723,51 @@ def run_director(
             provider=voice_provider,
             voice=voice,
             rate_wpm=voice_rate,
+            voice_pronunciations=voice_pronunciations,
             voice_instruction=voice_instruction,
             qwen3_python=qwen3_python,
             qwen3_model=qwen3_model,
             voice_reference=voice_reference,
             narration_file=narration_file,
+            narration_timings=narration_timings,
+            word_aligner=word_aligner,
+            word_aligner_python=word_aligner_python,
+            word_aligner_model=word_aligner_model,
         )
     else:
         revised_narration = initial_narration
     revised_plan = retime_plan(revised_plan, revised_narration)
     write_json(plan_path, revised_plan)
     write_citations(job_dir, [revised_plan])
-    revised_spec, revised_metadata = _render_video(job_dir, revised_plan, selected, revised_narration)
+    if revised_plan == initial_plan and revised_narration == initial_narration:
+        revised_spec, revised_metadata = initial_spec, initial_metadata
+    else:
+        revised_spec, revised_metadata = _render_video(
+            job_dir,
+            revised_plan,
+            selected,
+            revised_narration,
+            animation_style,
+            burn_captions,
+        )
     manifest_path = _write_manifest(
         job_dir,
         topic,
         sources,
         claims,
         grounded=revised_plan.grounded,
-        section=("video", _video_section(job_dir, revised_plan, selected, fallback_reason, revised_metadata, revised_narration)),
+        section=(
+            "video",
+            _video_section(
+                job_dir,
+                revised_plan,
+                selected,
+                fallback_reason,
+                revised_metadata,
+                revised_narration,
+                animation_style,
+            ),
+        ),
     )
     revised_report = qa_video(job_dir, revised_plan, revised_spec, revised_metadata, manifest_path, "revised")
     write_revision_artifacts(job_dir, "video", revised_plan, revised_report, "revised")

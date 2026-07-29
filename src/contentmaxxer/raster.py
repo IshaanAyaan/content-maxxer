@@ -315,6 +315,55 @@ def make_contact_sheet(images: Sequence[Path], output_path: Path, columns: int =
     return output_path
 
 
+def make_labeled_contact_sheet(
+    images: Sequence[Path],
+    labels: Sequence[str],
+    output_path: Path,
+    columns: int = 3,
+    thumb_width: int = 300,
+) -> Path:
+    if not images:
+        raise RuntimeError("cannot make a labeled contact sheet without images")
+    if len(images) != len(labels):
+        raise ValueError("contact-sheet images and labels must have equal lengths")
+    opened = [Image.open(path).convert("RGB") for path in images]
+    ratio = opened[0].height / opened[0].width
+    thumb_height = int(thumb_width * ratio)
+    label_height = 34
+    rows = math.ceil(len(opened) / columns)
+    gap = 14
+    cell_height = thumb_height + label_height
+    sheet = Image.new(
+        "RGB",
+        (
+            columns * thumb_width + (columns + 1) * gap,
+            rows * cell_height + (rows + 1) * gap,
+        ),
+        BG,
+    )
+    draw = ImageDraw.Draw(sheet)
+    font = _font(14, bold=True)
+    for index, (image, label) in enumerate(zip(opened, labels)):
+        thumb = image.resize((thumb_width, thumb_height), Image.Resampling.LANCZOS)
+        x = gap + (index % columns) * (thumb_width + gap)
+        y = gap + (index // columns) * (cell_height + gap)
+        sheet.paste(thumb, (x, y))
+        draw.rectangle(
+            [x, y + thumb_height, x + thumb_width, y + cell_height],
+            fill="#0C1A2B",
+        )
+        draw.text(
+            (x + 8, y + thumb_height + 8),
+            label,
+            font=font,
+            fill=INK,
+        )
+        image.close()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(output_path, optimize=True)
+    return output_path
+
+
 def render_raster_video(plan: ContentPlan, spec: ManimSceneSpec, job_dir: Path) -> Dict[str, object]:
     frames_dir = job_dir / "video" / "raster" / "frames"
     frames, frame_metadata = render_video_frames(plan, spec, frames_dir)

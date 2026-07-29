@@ -95,6 +95,7 @@ class NarrationTrack:
     sample_rate: int
     alignment_method: str
     cues: List[NarrationCue] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -158,6 +159,8 @@ class ManimSceneSpec:
     caption_rail: Dict[str, int]
     primitives: List[ManimPrimitiveSpec]
     duration_seconds: float
+    animation_style: str = "hand_drawn"
+    story: Dict[str, Any] = field(default_factory=dict)
     schema_version: str = SCHEMA_VERSION
 
 

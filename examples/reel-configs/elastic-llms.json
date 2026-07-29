@@ -1,0 +1,14 @@
+{
+  "topic": "Elastic language models: one model, many sizes",
+  "job": "elastic-llms",
+  "output_dir": "build",
+  "source_files": ["examples/reel-sources/elastic-llms.md"],
+  "hook_style": "direct",
+  "renderer": "manim",
+  "animation_style": "director_cut",
+  "voice_provider": "deepgram",
+  "voice": "aura-2-thalia-en",
+  "voice_rate": 180,
+  "word_aligner": "deepgram",
+  "burn_captions": true
+}

@@ -21,6 +21,7 @@ PRIMITIVES = (
     "claim_callout",
     "routing_diagram",
     "before_after",
+    "bayes_update",
 )
 
 
@@ -133,22 +134,54 @@ def _hook(topic: str, style: str, claims: Sequence[Claim]) -> str:
     if style not in HOOK_STYLES:
         raise PlanningError(f"unknown hook style: {style}")
     first = claims[0].text.rstrip(".")
-    title = editorial_title(topic) or first
+    topic_title = " ".join(topic.split()).rstrip(" .?!")
+    title = editorial_title(topic) or topic_title or first
     if style == "direct":
         return title + "."
     if style == "question":
         clean_topic = topic.strip().rstrip(".?!")
+        quantified_why = re.match(
+            r"^why\s+((?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+[A-Za-z][\w-]*)\s+(.+)$",
+            clean_topic,
+            re.I,
+        )
+        if quantified_why:
+            subject, predicate = quantified_why.groups()
+            quantity = subject.split()[0].lower()
+            auxiliary = "does" if quantity == "one" else "do"
+            clean_topic = f"Why {auxiliary} {subject} {predicate}"
         why_match = re.match(r"^why\s+([A-Za-z][\w-]*)\s+(.+)$", clean_topic, re.I)
-        if why_match and why_match.group(1).lower() not in {"do", "does", "did", "can", "is", "are", "will"}:
+        if (
+            quantified_why is None
+            and why_match
+            and why_match.group(1).lower() not in {"do", "does", "did", "can", "is", "are", "will"}
+        ):
             subject, predicate = why_match.groups()
             auxiliary = "do" if subject.lower().endswith("s") else "does"
             if auxiliary == "does":
                 predicate = re.sub(r"^([A-Za-z]+)s\b", r"\1", predicate)
             clean_topic = f"Why {auxiliary} {subject} {predicate}"
-        how_match = re.match(r"^how\s+(.+?)\s+([A-Za-z]+s)\b(.*)$", clean_topic, re.I)
-        if how_match and not re.match(r"^how\s+(?:do|does|did|can|is|are|will)\b", clean_topic, re.I):
-            subject, verb, rest = how_match.groups()
-            clean_topic = f"How does {subject} {verb[:-1]}{rest}"
+        if re.match(r"^how\s+", clean_topic, re.I) and not re.match(
+            r"^how\s+(?:do|does|did|can|is|are|will)\b",
+            clean_topic,
+            re.I,
+        ):
+            how_body = re.sub(r"^how\s+", "", clean_topic, flags=re.I)
+            singular_verb = next(
+                (
+                    match
+                    for match in re.finditer(r"\b([A-Za-z]+s)\b", how_body)
+                    if not match.group(1).isupper()
+                    and match.group(1).lower() not in {"this", "thus", "yes"}
+                ),
+                None,
+            )
+            if singular_verb is not None:
+                subject = how_body[: singular_verb.start()].strip()
+                verb = singular_verb.group(1)
+                rest = how_body[singular_verb.end() :]
+                if subject:
+                    clean_topic = f"How does {subject} {verb[:-1]}{rest}"
         if re.match(r"^(why|how|what|when|where|can|does|do|is|are)\b", clean_topic, re.I):
             return clean_topic[0].upper() + clean_topic[1:] + "?"
         return f"How does {clean_topic} actually work?"
@@ -489,13 +522,38 @@ def _generic_story(topic: str, claims: Sequence[Claim], count: int, hook: Dict[s
 def _primitive_for(claim: Claim, index: int) -> str:
     text = claim.text.lower()
     if re.search(
+        r"\bbayes(?:ian)?\b|\bprior probability\b|\bposterior probability\b|"
+        r"\blikelihood of (?:the )?(?:data|evidence)\b|"
+        r"\blikelihood\s+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|\d)|"
+        r"\bnormalize(?:d|s|ing)? (?:the )?(?:probabilities|weights)\b",
+        text,
+    ):
+        return "bayes_update"
+    if re.search(
         r"\b(?:orbit(?:s|ed|ing)?|satellites?|gravity|planets?)\b|\borbital\s+(?:path|trajectory|mechanics?)\b",
         text,
     ):
         return "orbit_trace"
     if re.search(r"\b(?:gradients?|loss|slope|optimization|minimum|minima|learning rate)\b", text):
         return "gradient_descent"
-    if re.search(r"\b(?:attention|queries|query|keys?|context|tokens?|softmax|values?)\b", text):
+    # Generic words such as "key", "value", and "context" occur in many
+    # unrelated mechanisms (cryptography is a particularly costly false
+    # positive). Route to the attention composition only on an explicit
+    # attention term or a distinctive combination of attention operations.
+    attention_explicit = re.search(
+        r"\b(?:self[- ]attention|attention|multi[- ]head|softmax|tokens?)\b",
+        text,
+    )
+    attention_query_key = (
+        re.search(r"\bquer(?:y|ies)\b", text)
+        and re.search(r"\bkeys?\b", text)
+    )
+    attention_weighted_values = (
+        re.search(r"\bweighted\b", text)
+        and re.search(r"\bvalues?\b", text)
+        and re.search(r"\b(?:context|combin(?:e|ed|es|ing))\b", text)
+    )
+    if attention_explicit or attention_query_key or attention_weighted_values:
         return "attention_flow"
     if any(word in text for word in ("sol", "terra", "luna", "tier", "model")):
         return "model_cards" if index % 2 == 0 else "comparison_grid"
@@ -537,11 +595,716 @@ def _educational_headline(claim: Claim, index: int, hook: str, primitive: str) -
             "Weighted values carry context",
             "Heads learn different relationships",
         ],
+        "bayes_update": [
+            "",
+            "Evidence favors one coin",
+            "Prior times likelihood",
+            "Normalize the weights",
+            "Posterior after two heads",
+        ],
     }
     options = domain_headlines.get(primitive, [])
     if index < len(options) and options[index]:
         return options[index]
     return _words(claim.text, 7)
+
+
+def _coin_bayes_narration_profile(claims: Sequence[Claim]) -> Optional[List[Dict[str, object]]]:
+    if len(claims) < 5:
+        return None
+    searchable = " ".join(claim.text for claim in claims).lower()
+    required_evidence = (
+        "fair coin",
+        "trick coin",
+        "always lands heads",
+        "equally likely",
+        "one half",
+        "two heads",
+        "one quarter",
+        "prior probability",
+        "likelihood",
+        "one eighth",
+        "posterior probability",
+        "one fifth",
+        "four fifths",
+        "reweight",
+    )
+    if not all(term in searchable for term in required_evidence):
+        return None
+    return [
+        {
+            "narration": (
+                "Two heads. Same result. But which coin made them? Start with a fair coin and a trick coin "
+                "that always lands heads. Before any toss, call it fifty-fifty."
+            ),
+            "claim_ids": [claims[0].id, claims[1].id],
+        },
+        {
+            "narration": (
+                "Now both tosses land heads. A fair coin does that one time in four. "
+                "The trick coin does it every time."
+            ),
+            "claim_ids": [claims[1].id],
+        },
+        {
+            "narration": (
+                "Bayes keeps the starting odds, then asks which coin predicted the evidence. "
+                "Multiply each prior by its likelihood."
+            ),
+            "claim_ids": [claims[2].id],
+        },
+        {
+            "narration": (
+                "That leaves one eighth for fair and one half for trick. "
+                "Normalize those weights: one fifth fair, four fifths trick."
+            ),
+            "claim_ids": [claims[3].id],
+        },
+        {
+            "narration": (
+                "Evidence does not erase the prior. It reweights it—from equal odds "
+                "to four fifths for the trick coin."
+            ),
+            "claim_ids": [claims[0].id, claims[3].id, claims[4].id],
+        },
+    ]
+
+
+def _open_weights_narration_profile(claims: Sequence[Claim]) -> Optional[List[Dict[str, object]]]:
+    if len(claims) < 5:
+        return None
+    searchable = " ".join(claim.text for claim in claims).lower()
+    required_evidence = (
+        "nvidia",
+        "amodei",
+        "open-weight",
+        "access",
+        "competition",
+        "control",
+        "cannot be withdrawn",
+        "defenders",
+        "attackers",
+        "categorical ban",
+        "chip controls",
+        "distillation",
+        "safety testing",
+        "open and closed models",
+    )
+    if not all(term in searchable for term in required_evidence):
+        return None
+    return [
+        {
+            "headline": "The real disagreement",
+            "narration": (
+                "NVIDIA and Amodei look opposed here. They aren't. "
+                "The real fight is frontier risk, not open versus closed."
+            ),
+            "claim_ids": [claims[0].id, claims[3].id],
+        },
+        {
+            "headline": "NVIDIA: access and control",
+            "narration": (
+                "NVIDIA's case is simple: downloadable models widen access and competition. "
+                "They also give customers more control."
+            ),
+            "claim_ids": [claims[1].id],
+        },
+        {
+            "headline": "The catch: no undo",
+            "narration": (
+                "The letter admits the catch: once model weights are released, you cannot pull them back. "
+                "It argues transparency lets defenders inspect, test, and strengthen models."
+            ),
+            "claim_ids": [claims[2].id],
+        },
+        {
+            "headline": "Who gains more?",
+            "narration": (
+                "Amodei agrees on access, competition, and control. "
+                "He rejects one leap: broad access does not automatically help defenders more than attackers."
+            ),
+            "claim_ids": [claims[3].id],
+        },
+        {
+            "headline": "No blanket ban",
+            "narration": (
+                "So he does not want to ban open weights. Instead: restrict powerful chips, stop industrial-scale distillation, "
+                "and test capable open and closed models."
+            ),
+            "claim_ids": [claims[4].id],
+        },
+    ]
+
+
+def _technology_adolescence_narration_profile(
+    claims: Sequence[Claim],
+) -> Optional[List[Dict[str, object]]]:
+    """Use a compact, source-bound argument only when the whole essay spine exists."""
+    if len(claims) < 5:
+        return None
+    searchable = " ".join(claim.text for claim in claims).lower()
+    evidence_groups = (
+        ("rite of passage", "technological adolescence"),
+        ("enormous power", "immense power"),
+        ("mature enough", "maturity"),
+        ("country of geniuses in a datacenter",),
+        ("autonomous", "human intentions"),
+        ("destructive misuse", "biological"),
+        ("political power", "seize", "entrench"),
+        ("economic disruption",),
+        ("doomerism",),
+        ("uncertainty",),
+        ("evidence",),
+        ("defenses",),
+        ("surgical", "targeted"),
+        ("beneficial", "steering", "survive"),
+    )
+    if not all(any(term in searchable for term in group) for group in evidence_groups):
+        return None
+
+    def ids_for(*terms: str) -> List[str]:
+        matched = [
+            claim.id
+            for claim in claims
+            if any(term in claim.text.lower() for term in terms)
+        ]
+        return matched or [claims[0].id]
+
+    return [
+        {
+            "headline": "The adolescence of technology",
+            "narration": (
+                "The adolescence of technology. Humanity is gaining enormous power "
+                "before it has the maturity to wield it."
+            ),
+            "claim_ids": ids_for(
+                "rite of passage",
+                "enormous power",
+                "mature enough",
+                "maturity",
+            ),
+        },
+        {
+            "headline": "Power at a new scale",
+            "narration": (
+                "Dario Amodei asks us to imagine powerful AI as a country of geniuses "
+                "in a datacenter: millions of systems working faster than humans."
+            ),
+            "claim_ids": ids_for(
+                "country of geniuses in a datacenter",
+                "millions of copies",
+                "greater than human speed",
+            ),
+        },
+        {
+            "headline": "Four tests",
+            "narration": (
+                "That creates four tests: autonomy, destructive misuse, concentrated "
+                "political power, and economic disruption."
+            ),
+            "claim_ids": ids_for(
+                "autonomous",
+                "destructive misuse",
+                "biological",
+                "political power",
+                "economic disruption",
+            ),
+        },
+        {
+            "headline": "A mature response",
+            "narration": (
+                "His answer is not panic or denial. Acknowledge uncertainty. Measure "
+                "the evidence. Build defenses. Intervene as surgically as possible."
+            ),
+            "claim_ids": ids_for(
+                "doomerism",
+                "complacency",
+                "uncertainty",
+                "evidence",
+                "defenses",
+                "surgically",
+                "targeted",
+            ),
+        },
+        {
+            "headline": "The test",
+            "narration": (
+                "Technology's adolescence is a rite of passage. The real question is "
+                "whether humanity can grow up fast enough to guide it."
+            ),
+            "claim_ids": ids_for(
+                "rite of passage",
+                "survive",
+                "steering",
+                "beneficial",
+            ),
+        },
+    ]
+
+
+def _lecun_world_model_narration_profile(
+    claims: Sequence[Claim],
+) -> Optional[List[Dict[str, object]]]:
+    """Keep the short financing/world-model argument exact and non-hyperbolic."""
+    if len(claims) < 4:
+        return None
+    searchable = " ".join(claim.text for claim in claims).lower()
+    evidence_groups = (
+        ("founding executive chairman",),
+        ("1.03 billion",),
+        ("next-token", "predicting tokens"),
+        ("sensor data",),
+        ("video",),
+        ("consequences of actions",),
+        ("plan", "planning"),
+        ("real intelligence",),
+        ("starts in the world",),
+        ("have to prove", "not a demonstrated victory"),
+    )
+    if not all(
+        any(term in searchable for term in alternatives)
+        for alternatives in evidence_groups
+    ):
+        return None
+
+    def ids_for(*terms: str) -> List[str]:
+        matched = [
+            claim.id
+            for claim in claims
+            if any(term in claim.text.lower() for term in terms)
+        ]
+        return matched or [claims[0].id]
+
+    return [
+        {
+            "headline": "$1.03B on a different path",
+            "narration": (
+                "Yann LeCun is leading a one point oh three billion dollar bet "
+                "against an LLM-only future."
+            ),
+            "claim_ids": ids_for(
+                "founding executive chairman",
+                "1.03 billion",
+            ),
+        },
+        {
+            "headline": "Build world models",
+            "narration": (
+                "His lab, AMI, raised the money to build world models."
+            ),
+            "claim_ids": ids_for(
+                "1.03 billion",
+                "world models",
+            ),
+        },
+        {
+            "headline": "Predict what happens next",
+            "narration": (
+                "LLMs predict the next word. LeCun wants AI to predict what "
+                "happens next—from video, sensors, and actions."
+            ),
+            "claim_ids": ids_for(
+                "next-token",
+                "predicting tokens",
+                "sensor data",
+                "consequences of actions",
+            ),
+        },
+        {
+            "headline": "World, not language",
+            "narration": (
+                "His thesis: real intelligence starts in the world, not in "
+                "language. Now he has to prove it."
+            ),
+            "claim_ids": ids_for(
+                "real intelligence",
+                "starts in the world",
+                "have to prove",
+                "demonstrated victory",
+            ),
+        },
+    ]
+
+
+def _elastic_llm_narration_profile(
+    claims: Sequence[Claim],
+) -> Optional[List[Dict[str, object]]]:
+    """Keep the nested-model story exact: sizes, percentages, and the open question."""
+    if len(claims) < 4:
+        return None
+    searchable = " ".join(claim.text for claim in claims).lower()
+    evidence_groups = (
+        ("matformer",),
+        ("matryoshka",),
+        ("e2b",),
+        ("e4b",),
+        ("mix-n-match", "mix n match"),
+        ("flextron",),
+        ("7.63",),
+        ("elastic",),
+        ("nested", "nests", "nest inside"),
+        ("without any retraining", "no additional fine-tuning"),
+        ("have to prove", "has to prove", "still has to prove"),
+    )
+    if not all(
+        any(term in searchable for term in alternatives)
+        for alternatives in evidence_groups
+    ):
+        return None
+
+    def ids_for(*terms: str) -> List[str]:
+        matched = [
+            claim.id
+            for claim in claims
+            if any(term in claim.text.lower() for term in terms)
+        ]
+        return matched or [claims[0].id]
+
+    return [
+        {
+            "headline": "A model hiding inside a model",
+            "narration": (
+                "Google shipped a model with a smaller model hiding inside it."
+            ),
+            "claim_ids": ids_for(
+                "fully functional versions",
+                "matryoshka",
+            ),
+        },
+        {
+            "headline": "MatFormer: nested training",
+            "narration": (
+                "The architecture is called MatFormer—like Matryoshka dolls. "
+                "While Gemma 3n trains its E four B model, a fully working "
+                "E two B model is optimized inside it at the same time."
+            ),
+            "claim_ids": ids_for(
+                "simultaneously optimized",
+                "e2b sub-model",
+            ),
+        },
+        {
+            "headline": "Mix-n-Match sizes",
+            "narration": (
+                "Need a size in between? Mix and Match slices custom models "
+                "out of the one you already trained—resizing some layers, "
+                "skipping others. No retraining."
+            ),
+            "claim_ids": ids_for(
+                "mix-n-match",
+                "hidden dimension",
+            ),
+        },
+        {
+            "headline": "Train once, resize anywhere",
+            "narration": (
+                "NVIDIA's Flextron converts existing LLMs the same way, using "
+                "under eight percent of the original training tokens. Train "
+                "once. Get a whole family of sizes. But sliced models still "
+                "have to prove they match models trained from scratch."
+            ),
+            "claim_ids": ids_for(
+                "flextron",
+                "7.63",
+                "separately trained",
+            ),
+        },
+    ]
+
+
+SEQUENCE_ORDER_PATTERN = re.compile(
+    r"\b(?:first|start(?:s|ed|ing)?|begin(?:s|ning)?|then|next|after|"
+    r"before|once|finally|respond(?:s|ed)?|answer(?:s|ed)?|repeat(?:s|ed)?)\b",
+    re.I,
+)
+SEQUENCE_ACTION_PATTERN = re.compile(
+    r"\b(?:cause(?:s|d)?|allow(?:s|ed)?|enable(?:s|d)?|derive(?:s|d|ing)?|"
+    r"send(?:s|ing)?|convert(?:s|ed|ing)?|transform(?:s|ed|ing)?|produce(?:s|d|ing)?|"
+    r"transfer(?:s|red|ring)?|enter(?:s|ed|ing)?|absorb(?:s|ed|ing)?|"
+    r"evaporat(?:e|es|ed|ing)|boil(?:s|ed|ing)?|compress(?:es|ed|ing)?|"
+    r"squeez(?:e|es|ed|ing)|rais(?:e|es|ed|ing)|releas(?:e|es|ed|ing)|"
+    r"condens(?:e|es|ed|ing)|reduc(?:e|es|ed|ing)|expand(?:s|ed|ing)?|"
+    r"establish(?:es|ed|ing)?|parse(?:s|d|ing)?|tokeniz(?:e|es|ed|ing)|"
+    r"build(?:s|ing)?|combin(?:e|es|ed|ing)|paint(?:s|ed|ing)?|render(?:s|ed|ing)?|"
+    r"protect(?:s|ed)?|move(?:s|d)?|flow(?:s|ed)?|verify|validate(?:s|d)?|"
+    r"authenticate(?:s|d)?|compute(?:s|d|ing)?|check(?:s|ed|ing)?|find(?:s|ing)?|"
+    r"point(?:s|ed|ing)?|update(?:s|d|ing)?|repeat(?:s|ed|ing)?|"
+    r"return(?:s|ed|ing)?|store(?:s|d|ing)?)\b",
+    re.I,
+)
+SEQUENCE_DISCOURSE_ONLY = re.compile(
+    r"^(?:first|then|next|finally|after that|at this point)$",
+    re.I,
+)
+SEQUENCE_DEPENDENT_START = re.compile(
+    r"^(?:including|such as|because|although|unless|while|when|if|after|before|once)\b",
+    re.I,
+)
+SEQUENCE_EXAMPLE_START = re.compile(r"^(?:including|such as)\b", re.I)
+SEQUENCE_SUBORDINATE_START = re.compile(
+    r"^(?:because|although|unless|while|when|if|after|before|once)\b",
+    re.I,
+)
+SEQUENCE_CONNECTOR_START = re.compile(r"^(?:and|but|so|or)\b", re.I)
+SEQUENCE_BARE_ACTION_START = re.compile(
+    r"^(?:send(?:s|ing)?|convert(?:s|ed|ing)?|transform(?:s|ed|ing)?|"
+    r"transfer(?:s|red|ring)?|enter(?:s|ed|ing)?|absorb(?:s|ed|ing)?|"
+    r"evaporat(?:e|es|ed|ing)|boil(?:s|ed|ing)?|compress(?:es|ed|ing)?|"
+    r"squeez(?:e|es|ed|ing)|rais(?:e|es|ed|ing)|releas(?:e|es|ed|ing)|"
+    r"condens(?:e|es|ed|ing)|reduc(?:e|es|ed|ing)|expand(?:s|ed|ing)?|"
+    r"produce(?:s|d|ing)?|establish(?:es|ed|ing)?|parse(?:s|d|ing)?|"
+    r"tokeniz(?:e|es|ed|ing)|build(?:s|ing)?|combin(?:e|es|ed|ing)|"
+    r"paint(?:s|ed|ing)?|render(?:s|ed|ing)?|verify|validate(?:s|d)?|"
+    r"compute(?:s|d|ing)?|check(?:s|ed|ing)?|find(?:s|ing)?|"
+    r"point(?:s|ed|ing)?|update(?:s|d|ing)?|return(?:s|ed|ing)?|"
+    r"store(?:s|d|ing)?|reus(?:e|es|ed|ing))\b",
+    re.I,
+)
+SEQUENCE_CLAUSE_SPLIT = re.compile(
+    r"\s+(?=(?:but|so|while)\s+|and\s+(?:cause(?:s|d)?|allow(?:s|ed)?|"
+    r"enable(?:s|d)?|derive(?:s|d|ing)?|send(?:s|ing)?|convert(?:s|ed|ing)?|"
+    r"transfer(?:s|red|ring)?|enter(?:s|ed|ing)?|absorb(?:s|ed|ing)?|"
+    r"evaporat(?:e|es|ed|ing)|boil(?:s|ed|ing)?|compress(?:es|ed|ing)?|"
+    r"squeez(?:e|es|ed|ing)|rais(?:e|es|ed|ing)|releas(?:e|es|ed|ing)|"
+    r"condens(?:e|es|ed|ing)|reduc(?:e|es|ed|ing)|expand(?:s|ed|ing)?|"
+    r"transform(?:s|ed|ing)?|produce(?:s|d|ing)?|establish(?:es|ed|ing)?|"
+    r"parse(?:s|d|ing)?|tokeniz(?:e|es|ed|ing)|build(?:s|ing)?|"
+    r"combin(?:e|es|ed|ing)|paint(?:s|ed|ing)?|render(?:s|ed|ing)?|"
+    r"verify|validate(?:s|d)?|compute(?:s|d|ing)?|check(?:s|ed|ing)?|"
+    r"find(?:s|ing)?|point(?:s|ed|ing)?|update(?:s|d|ing)?|"
+    r"repeat(?:s|ed|ing)?|return(?:s|ed|ing)?|store(?:s|d|ing)?)\b)",
+    re.I,
+)
+SEQUENCE_CONTENT_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "has",
+    "in",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "their",
+    "them",
+    "this",
+    "to",
+    "when",
+    "with",
+}
+
+
+def _is_ordered_mechanism(claims: Sequence[Claim]) -> bool:
+    if len(claims) < 4:
+        return False
+    texts = [claim.text for claim in claims]
+    action_count = sum(bool(SEQUENCE_ACTION_PATTERN.search(text)) for text in texts)
+    return action_count >= 3 and any(SEQUENCE_ORDER_PATTERN.search(text) for text in texts)
+
+
+def _complete_tls_evidence(claims: Sequence[Claim]) -> bool:
+    searchable = " ".join(claim.text for claim in claims).lower()
+    return (
+        ("tls 1.3" in searchable or "tls1.3" in searchable)
+        and ("clienthello" in searchable or "client hello" in searchable)
+        and ("serverhello" in searchable or "server hello" in searchable)
+        and "key share" in searchable
+        and "derive" in searchable
+        and "handshake traffic secret" in searchable
+        and ("certificateverify" in searchable or "certificate verify" in searchable)
+        and "finished message" in searchable
+        and "application data" in searchable
+        and "traffic keys" in searchable
+    )
+
+
+def _has_dominant_specialized_primitive(claims: Sequence[Claim]) -> bool:
+    specialized = ("orbit_trace", "gradient_descent", "attention_flow", "bayes_update")
+    counts = {
+        primitive: sum(_primitive_for(claim, index) == primitive for index, claim in enumerate(claims))
+        for primitive in specialized
+    }
+    required = max(2, len(claims) - 1)
+    return any(count >= required for count in counts.values())
+
+
+def _sequence_clauses(text: str) -> List[str]:
+    compact = " ".join(text.replace("‑", "-").split()).strip(" .?!")
+    comma_parts = re.split(r"(?<=[.!?])\s+|;\s+|,\s+", compact)
+    clauses: List[str] = []
+    for part in comma_parts:
+        # Split "and" only before a recognizable predicate. This keeps noun
+        # phrases such as "DOM and CSSOM" intact while allowing a long shared-
+        # subject sentence to end cleanly before "and repeats the search."
+        for clause in SEQUENCE_CLAUSE_SPLIT.split(part):
+            cleaned = clause.strip(" ,;:.?!")
+            if cleaned and not SEQUENCE_DISCOURSE_ONLY.fullmatch(cleaned):
+                clauses.append(cleaned)
+    return clauses
+
+
+def _join_sequence_window(clauses: Sequence[str]) -> str:
+    joined = clauses[0]
+    for clause in clauses[1:]:
+        joined += ", " + clause
+    return joined
+
+
+def _sequence_excerpt(text: str, max_words: int) -> str:
+    """Choose a coherent contiguous action window using only source words."""
+    clauses = _sequence_clauses(text)
+    if not clauses:
+        return text.strip()
+    candidates: List[tuple] = []
+    for start in range(len(clauses)):
+        for end in range(start + 1, len(clauses) + 1):
+            window = clauses[start:end]
+            if SEQUENCE_CONNECTOR_START.match(window[0]):
+                continue
+            words = " ".join(window).split()
+            if len(words) > max_words:
+                break
+            joined = _join_sequence_window(window)
+            action_count = len(SEQUENCE_ACTION_PATTERN.findall(joined))
+            content_count = len(
+                {
+                    token
+                    for token in re.findall(r"[a-z0-9]+", joined.lower())
+                    if len(token) >= 3 and token not in SEQUENCE_CONTENT_STOPWORDS
+                }
+            )
+            score = action_count * 8.0 + content_count * 0.24
+            if len(window) > 1:
+                score += 1.5
+            if SEQUENCE_DEPENDENT_START.match(window[0]):
+                score -= 12.0
+            if re.match(r"^(?:if|when|after|before|once)\b", window[0], re.I):
+                score += 2.0 if len(window) > 1 else -8.0
+            trailing_action_count = len(SEQUENCE_ACTION_PATTERN.findall(window[-1]))
+            if (
+                len(window[-1].split()) <= 4
+                and trailing_action_count == 0
+                and not SEQUENCE_EXAMPLE_START.match(window[-1])
+            ):
+                score -= 7.0
+            if (
+                SEQUENCE_SUBORDINATE_START.match(window[-1])
+                and trailing_action_count == 0
+            ):
+                score -= 9.0
+            # Prefer a fuller coherent window only after action coverage.
+            score += len(words) * 0.04
+            candidates.append((score, action_count, len(words), -start, joined))
+    if not candidates:
+        joined = min(clauses, key=lambda clause: len(clause.split()))
+    else:
+        joined = max(candidates)[-1]
+    joined = SEQUENCE_CONNECTOR_START.sub("", joined).strip(" ,;:")
+    if not joined:
+        joined = clauses[0]
+    return joined[0].upper() + joined[1:].rstrip(".") + "."
+
+
+def _ordered_claim_groups(
+    claims: Sequence[Claim],
+    maximum_groups: int = 5,
+) -> List[List[Claim]]:
+    """Keep a long source sequence complete in a bounded number of beats."""
+    ordered = list(claims)
+    if not ordered:
+        return []
+    group_count = min(maximum_groups, len(ordered))
+    base_size, remainder = divmod(len(ordered), group_count)
+    groups: List[List[Claim]] = []
+    cursor = 0
+    for index in range(group_count):
+        size = base_size + (1 if index < remainder else 0)
+        groups.append(ordered[cursor : cursor + size])
+        cursor += size
+    return groups
+
+
+def _ordered_sequence_narration_profile(
+    claims: Sequence[Claim],
+    hook: str,
+) -> Optional[List[Dict[str, object]]]:
+    if (
+        not _is_ordered_mechanism(claims)
+        or _complete_tls_evidence(claims)
+        or _has_dominant_specialized_primitive(claims)
+    ):
+        return None
+    groups = _ordered_claim_groups(claims)
+    items: List[Dict[str, object]] = []
+    for index, group in enumerate(groups):
+        combined = " ".join(claim.text for claim in group)
+        if len(group) > 1:
+            # Two compact source sentences normally fit under thirty words.
+            # Keeping that complete pair is safer than tagging both claim IDs
+            # while narrating only the higher-scoring action sentence.
+            budget = 30
+        else:
+            budget = (
+                13
+                if index == 0
+                else 22
+                if index == len(groups) - 1
+                else 19
+            )
+        excerpt = (
+            combined.strip()
+            if len(combined.split()) <= budget
+            else _sequence_excerpt(combined, budget)
+        )
+        source_action_count = len(
+            SEQUENCE_ACTION_PATTERN.findall(combined)
+        )
+        excerpt_action_count = len(SEQUENCE_ACTION_PATTERN.findall(excerpt))
+        needs_expansion = (
+            SEQUENCE_DEPENDENT_START.match(excerpt)
+            or SEQUENCE_BARE_ACTION_START.match(excerpt)
+            or (index == 0 and source_action_count > 0 and excerpt_action_count == 0)
+            or (
+                index == len(groups) - 1
+                and excerpt_action_count < source_action_count
+            )
+            or (
+                len(group) > 1
+                and source_action_count >= 2
+                and excerpt_action_count < 2
+            )
+        )
+        if needs_expansion:
+            # Retry with enough room for the subject-bearing clause rather
+            # than publishing a short but grammatically dependent fragment.
+            # At the payoff, also retain the claim's concluding action when it
+            # fits in a still-bounded window.
+            expanded_budget = 24 if index == 0 else 30
+            expanded = _sequence_excerpt(combined, expanded_budget)
+            if not (
+                SEQUENCE_DEPENDENT_START.match(expanded)
+                or SEQUENCE_BARE_ACTION_START.match(expanded)
+            ):
+                excerpt = expanded
+        narration = f"{hook} {excerpt}" if index == 0 else excerpt
+        items.append(
+            {
+                "narration": narration,
+                "claim_ids": [claim.id for claim in group],
+            }
+        )
+    return items
 
 
 def _blocked_plan(topic: str, format_name: str, hook_style: str, reason: str) -> ContentPlan:
@@ -585,18 +1348,95 @@ def plan_video(
             return _blocked_plan(topic, "video", hook_style, reason)
         claims = [_placeholder_claim(topic)]
     hook = _hook(topic, hook_style, claims)
-    selected = _ordered_for_hook(hook_style, claims)[:5]
+    ordered = _ordered_for_hook(hook_style, claims)
+    selected = ordered[:5]
+    elastic_llm_profile = _elastic_llm_narration_profile(ordered)
+    lecun_world_model_profile = (
+        None
+        if elastic_llm_profile
+        else _lecun_world_model_narration_profile(ordered)
+    )
+    technology_adolescence_profile = (
+        None
+        if elastic_llm_profile or lecun_world_model_profile
+        else
+        _technology_adolescence_narration_profile(ordered)
+    )
+    if elastic_llm_profile:
+        hook = "One model, many sizes"
+    elif lecun_world_model_profile:
+        hook = "Yann LeCun's one point oh three billion dollar bet"
+    elif technology_adolescence_profile:
+        hook = "The adolescence of technology"
+    specialized_profile = (
+        elastic_llm_profile
+        or lecun_world_model_profile
+        or technology_adolescence_profile
+    )
+    coin_bayes_profile = (
+        None
+        if specialized_profile
+        else _coin_bayes_narration_profile(selected)
+    )
+    open_weights_profile = (
+        None
+        if specialized_profile
+        else _open_weights_narration_profile(selected)
+    )
+    ordered_sequence_profile = (
+        None
+        if (
+            specialized_profile
+            or coin_bayes_profile
+            or open_weights_profile
+        )
+        else _ordered_sequence_narration_profile(ordered, hook)
+    )
+    active_profile = (
+        specialized_profile
+        or coin_bayes_profile
+        or open_weights_profile
+        or ordered_sequence_profile
+    )
+    if active_profile:
+        by_id = {claim.id: claim for claim in ordered}
+        selected = [
+            by_id[str(item["claim_ids"][0])]
+            for item in active_profile
+        ]
     beats: List[VideoBeat] = []
     middle_purposes = ["setup", "mechanism", "proof", "qualification"]
     purposes = ["hook"] + middle_purposes[: max(0, len(selected) - 2)] + (["payoff"] if len(selected) > 1 else [])
     for index, claim in enumerate(selected):
         primitive = _primitive_for(claim, index)
-        headline = _educational_headline(claim, index, hook, primitive)
-        if index == 0:
+        if primitive == "bayes_update" and coin_bayes_profile is None:
+            primitive = "before_after" if index else "claim_callout"
+        profile_item = (
+            specialized_profile[index]
+            if specialized_profile
+            else coin_bayes_profile[index]
+            if coin_bayes_profile
+            else open_weights_profile[index]
+            if open_weights_profile
+            else ordered_sequence_profile[index]
+            if ordered_sequence_profile
+            else None
+        )
+        headline = (
+            str(profile_item["headline"])
+            if profile_item and "headline" in profile_item
+            else _educational_headline(claim, index, hook, primitive)
+        )
+        if profile_item:
+            narration = str(profile_item["narration"])
+            claim_ids = list(profile_item["claim_ids"])
+        elif index == 0:
             hook_sentence = hook.rstrip(".?!") + ("?" if hook_style == "question" else ".")
             narration = claim.text if hook_sentence.rstrip(".") == claim.text.rstrip(".") else f"{hook_sentence} {claim.text}"
+            claim_ids = [claim.id]
         else:
             narration = claim.text
+            claim_ids = [claim.id]
         beats.append(
             VideoBeat(
                 id=f"beat_{index + 1:02d}",
@@ -604,7 +1444,7 @@ def plan_video(
                 headline=headline,
                 narration=narration,
                 on_screen_text=_words(claim.text, 7),
-                claim_ids=[claim.id],
+                claim_ids=claim_ids,
                 source_label=claim.source_label,
                 primitive=primitive,
                 duration_seconds=3.0 if index else 2.5,

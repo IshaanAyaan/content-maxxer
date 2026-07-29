@@ -42,40 +42,72 @@ def main() -> int:
         text = str(segment["text"])
         word_count = max(1, len(re.findall(r"\S+", text)))
         expected_seconds = word_count / max(100, target_wpm) * 60.0
-        waveform = None
-        actual_seconds = 0.0
-        for attempt in range(2):
-            max_tokens = max(96, min(360, int(word_count * (7.0 if attempt == 0 else 6.0) + 24)))
-            attempt_instruction = (
-                (instruction or "")
-                + " Speak at a natural short-form educational video pace. "
-                "Do not add commentary, repeat words, or insert long dramatic pauses."
-            )
-            results = list(
-                model.generate_custom_voice(
-                    text=text,
-                    speaker=speaker,
-                    language=language,
-                    instruct=attempt_instruction,
-                    temperature=temperature if attempt == 0 else min(temperature, 0.68),
-                    max_tokens=max_tokens,
-                    top_p=0.92 if attempt == 0 else 0.84,
-                    repetition_penalty=1.12 if attempt == 0 else 1.18,
-                    stream=False,
-                )
-            )
-            if not results:
-                continue
-            waveform = np.concatenate([np.asarray(result.audio).squeeze() for result in results])
-            actual_seconds = waveform.size / float(model.sample_rate)
-            if actual_seconds <= max(4.0, expected_seconds * 1.85):
-                break
+        chunks = [str(chunk).strip() for chunk in segment.get("chunks", []) if str(chunk).strip()] or [text]
+        piece_waveforms = []
+        piece_metadata = []
+        for chunk_index, chunk in enumerate(chunks, start=1):
+            chunk_word_count = max(1, len(re.findall(r"\S+", chunk)))
+            chunk_expected_seconds = chunk_word_count / max(100, target_wpm) * 60.0
             waveform = None
-        if waveform is None:
-            raise RuntimeError(
-                f"Qwen3-TTS produced implausibly long speech for {segment['id']} "
-                f"(last_duration={actual_seconds:.2f}s, expected_about={expected_seconds:.2f}s)"
+            actual_seconds = 0.0
+            token_cap_retries = 0
+            used_max_tokens = 0
+            attempts = 0
+            for attempt in range(3):
+                attempts = attempt + 1
+                base_tokens = max(80, min(320, int(chunk_word_count * 8.0 + 32)))
+                max_tokens = min(640, int(base_tokens * (1.0 if attempt == 0 else 1.6 + 0.4 * (attempt - 1))))
+                used_max_tokens = max_tokens
+                attempt_instruction = (
+                    (instruction or "")
+                    + " Speak at a natural short-form educational video pace. "
+                    "Finish every supplied sentence. Do not add commentary, repeat words, "
+                    "or insert long dramatic pauses."
+                )
+                results = list(
+                    model.generate_custom_voice(
+                        text=chunk,
+                        speaker=speaker,
+                        language=language,
+                        instruct=attempt_instruction,
+                        temperature=temperature if attempt == 0 else min(temperature, 0.68),
+                        max_tokens=max_tokens,
+                        top_p=0.92 if attempt == 0 else 0.84,
+                        repetition_penalty=1.12 if attempt == 0 else 1.18,
+                        stream=False,
+                    )
+                )
+                if not results:
+                    continue
+                waveform = np.concatenate([np.asarray(result.audio).squeeze() for result in results])
+                actual_seconds = waveform.size / float(model.sample_rate)
+                near_token_cap = actual_seconds >= (max_tokens / 12.0) * 0.93
+                implausibly_long = actual_seconds > max(3.0, chunk_expected_seconds * 2.2)
+                if near_token_cap:
+                    token_cap_retries += 1
+                if not near_token_cap and not implausibly_long:
+                    break
+                waveform = None
+            if waveform is None:
+                raise RuntimeError(
+                    f"Qwen3-TTS could not complete {segment['id']} chunk {chunk_index} "
+                    f"(last_duration={actual_seconds:.2f}s, expected_about={chunk_expected_seconds:.2f}s)"
+                )
+            piece_waveforms.append(waveform)
+            if chunk_index < len(chunks):
+                piece_waveforms.append(np.zeros(int(model.sample_rate * 0.10), dtype=np.float32))
+            piece_metadata.append(
+                {
+                    "chunk_index": chunk_index,
+                    "word_count": chunk_word_count,
+                    "duration_seconds": round(actual_seconds, 4),
+                    "attempts": attempts,
+                    "max_tokens": used_max_tokens,
+                    "token_cap_retries": token_cap_retries,
+                }
             )
+        waveform = np.concatenate(piece_waveforms)
+        actual_seconds = waveform.size / float(model.sample_rate)
         destination = args.output_dir / f"{index:02d}-{segment['id']}-qwen3-native.wav"
         wavfile.write(destination, int(model.sample_rate), _pcm16(waveform))
         outputs.append(
@@ -85,6 +117,8 @@ def main() -> int:
                 "sample_rate": int(model.sample_rate),
                 "duration_seconds": round(actual_seconds, 4),
                 "expected_seconds": round(expected_seconds, 4),
+                "chunk_count": len(chunks),
+                "chunks": piece_metadata,
             }
         )
 
