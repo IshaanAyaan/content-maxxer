@@ -34,10 +34,46 @@ PAPER_PINK = "#FF4FA3"
 PAPER_BLUE = "#3D5AFE"
 PAPER_CORAL = "#FF5F45"
 PAPER_GRID = "#D8CEB7"
-FONT_REGULAR = Path("/System/Library/Fonts/SFNS.ttf")
-FONT_BOLD = Path("/System/Library/Fonts/SFNS.ttf")
-FONT_HEADLINE = Path("/System/Library/Fonts/Supplemental/DIN Condensed Bold.ttf")
-FONT_MARKER = Path("/System/Library/Fonts/MarkerFelt.ttc")
+def _first_existing_font(candidates: Sequence[str]) -> Optional[Path]:
+    for candidate in candidates:
+        path = Path(candidate)
+        if path.is_file():
+            return path
+    return None
+
+
+FONT_REGULAR = _first_existing_font(
+    [
+        "/System/Library/Fonts/SFNS.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+        "C:/Windows/Fonts/arial.ttf",
+    ]
+)
+FONT_BOLD = _first_existing_font(
+    [
+        "/System/Library/Fonts/SFNS.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
+        "C:/Windows/Fonts/arialbd.ttf",
+    ]
+)
+FONT_HEADLINE = _first_existing_font(
+    [
+        "/System/Library/Fonts/Supplemental/DIN Condensed Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSansNarrow-Bold.ttf",
+    ]
+)
+FONT_MARKER = _first_existing_font(
+    [
+        "/System/Library/Fonts/MarkerFelt.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf",
+    ]
+)
 
 
 TARGET_PROFILES: Dict[str, Dict[str, object]] = {
@@ -52,15 +88,27 @@ TARGET_PROFILES: Dict[str, Dict[str, object]] = {
 }
 
 
-def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    path = FONT_BOLD if bold else FONT_REGULAR
+def _default_font(size: int) -> ImageFont.ImageFont:
     try:
-        return ImageFont.truetype(str(path), size=size)
-    except OSError:
+        # Pillow >= 10.1 can scale the bundled fallback font.
+        return ImageFont.load_default(size=size)
+    except TypeError:
         return ImageFont.load_default()
 
 
+def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+    path = FONT_BOLD if bold else FONT_REGULAR
+    if path is None:
+        return _default_font(size)
+    try:
+        return ImageFont.truetype(str(path), size=size)
+    except OSError:
+        return _default_font(size)
+
+
 def _headline_font(size: int) -> ImageFont.FreeTypeFont:
+    if FONT_HEADLINE is None:
+        return _font(size, bold=True)
     try:
         return ImageFont.truetype(str(FONT_HEADLINE), size=size)
     except OSError:
@@ -68,6 +116,8 @@ def _headline_font(size: int) -> ImageFont.FreeTypeFont:
 
 
 def _marker_font(size: int) -> ImageFont.FreeTypeFont:
+    if FONT_MARKER is None:
+        return _font(size, bold=True)
     try:
         return ImageFont.truetype(str(FONT_MARKER), size=size)
     except OSError:
